@@ -3,21 +3,28 @@
   "description": "Implement git worktree discovery: Create pkg/worktree package that lists worktrees for a given project path. Use 'git worktree list --porcelain' to get worktree data. Parse output into Worktree struct with fields: Path, Branch, Commit, IsPrimary. Create function ListWorktrees(projectPath string) ([]Worktree, error) that returns all worktrees for the project.",
   "status": "todo",
   "created": "2026-02-20T23:47:07",
-  "updated": "2026-02-20T23:47:07",
-  "note": null,
+  "updated": "2026-02-21T00:24:32",
+  "note": "Updated with prerequisites and file references",
   "context": {
-    "files": [],
+    "files": [
+      "/Users/bingles/code/tools/wt/go.mod",
+      "/Users/bingles/code/tools/wt/pkg/worktree/worktree.go",
+      "/Users/bingles/code/tools/wt/pkg/worktree/worktree_test.go"
+    ],
     "docs": [],
     "skills": []
   },
   "acceptance_criteria": [
-    "pkg/worktree/worktree.go exists with Worktree struct",
-    "ListWorktrees function parses 'git worktree list --porcelain' output",
-    "Function returns slice of Worktree structs with all fields populated"
+    "PREREQUISITE: Task-01 must be completed first",
+    "pkg/worktree/worktree.go exists at /Users/bingles/code/tools/wt/pkg/worktree/worktree.go",
+    "Worktree struct has fields: Path string, Branch string, Commit string, IsPrimary bool",
+    "ListWorktrees(projectPath string) ([]Worktree, error) function exists",
+    "Function executes 'git worktree list --porcelain' and parses all fields correctly",
+    "Tests exist that verify parsing of git worktree output"
   ],
   "verification": {
     "type": "command",
-    "value": "cd wt && go test ./pkg/worktree"
+    "value": "cd /Users/bingles/code/tools/wt && go test -v ./pkg/worktree -run TestListWorktrees"
   },
   "claimed_by": null
 }

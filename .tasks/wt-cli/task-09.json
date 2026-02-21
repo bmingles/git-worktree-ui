@@ -3,22 +3,33 @@
   "description": "Create CLI command structure with Cobra: Set up cobra commands in cmd/ directory. Commands: 'wt' (default: launch TUI), 'wt config add <name> <path>' (add project), 'wt config list' (list projects), 'wt config init' (create default config). Root command should load config and launch TUI if no subcommand. Add persistent flags for --config to specify custom config path.",
   "status": "todo",
   "created": "2026-02-20T23:47:45",
-  "updated": "2026-02-20T23:47:45",
-  "note": null,
+  "updated": "2026-02-21T00:25:28",
+  "note": "Updated with prerequisites and file references",
   "context": {
-    "files": [],
+    "files": [
+      "/Users/bingles/code/tools/wt/main.go",
+      "/Users/bingles/code/tools/wt/cmd/root.go",
+      "/Users/bingles/code/tools/wt/cmd/config.go",
+      "/Users/bingles/code/tools/wt/pkg/config/config.go",
+      "/Users/bingles/code/tools/wt/pkg/tui/model.go"
+    ],
     "docs": [],
     "skills": []
   },
   "acceptance_criteria": [
-    "cmd/root.go exists with root command setup",
-    "cmd/config.go exists with add, list, init subcommands",
-    "Running 'wt' with no args launches TUI",
-    "config subcommands work correctly"
+    "PREREQUISITES: Tasks 01, 02, 05 must be completed first",
+    "cmd/root.go exists with cobra root command setup",
+    "cmd/config.go exists with config subcommands: add, list, init",
+    "Root command launches TUI when run with no arguments: wt",
+    "wt config add <name> <path> adds project to config",
+    "wt config list displays all configured projects",
+    "wt config init creates ~/.config/wt/config.yaml with empty projects list",
+    "Persistent flag --config allows custom config path",
+    "main.go calls cmd.Execute()"
   ],
   "verification": {
     "type": "command",
-    "value": "cd wt && go build && ./wt config list"
+    "value": "cd /Users/bingles/code/tools/wt && go build && ./wt config --help && ./wt --help"
   },
   "claimed_by": null
 }

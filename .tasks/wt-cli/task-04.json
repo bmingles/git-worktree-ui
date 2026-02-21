@@ -3,21 +3,29 @@
   "description": "Add git status to worktree info: Extend worktree package to include git status for each worktree. Add GitStatus struct with fields: HasChanges bool, AheadBy int, BehindBy int. Add function GetStatus(worktreePath string) (GitStatus, error) that runs 'git status --porcelain --branch' and parses output. Update Worktree struct to include Status field.",
   "status": "todo",
   "created": "2026-02-20T23:47:12",
-  "updated": "2026-02-20T23:47:12",
-  "note": null,
+  "updated": "2026-02-21T00:24:43",
+  "note": "Updated with prerequisites and file references",
   "context": {
-    "files": [],
+    "files": [
+      "/Users/bingles/code/tools/wt/pkg/worktree/worktree.go",
+      "/Users/bingles/code/tools/wt/pkg/worktree/status.go",
+      "/Users/bingles/code/tools/wt/pkg/worktree/status_test.go"
+    ],
     "docs": [],
     "skills": []
   },
   "acceptance_criteria": [
-    "GitStatus struct exists in pkg/worktree/status.go",
-    "GetStatus function parses git status output correctly",
-    "Worktree struct includes Status GitStatus field"
+    "PREREQUISITE: Task-03 must be completed first",
+    "GitStatus struct exists in pkg/worktree/status.go with fields: HasChanges bool, AheadBy int, BehindBy int",
+    "GetStatus(worktreePath string) (GitStatus, error) function exists",
+    "Function executes 'git status --porcelain --branch' in worktree directory",
+    "Parses output to detect changes, ahead/behind counts",
+    "Worktree struct in worktree.go includes Status GitStatus field",
+    "Tests verify status parsing for various git states"
   ],
   "verification": {
     "type": "command",
-    "value": "cd wt && go test ./pkg/worktree"
+    "value": "cd /Users/bingles/code/tools/wt && go test -v ./pkg/worktree -run TestGetStatus"
   },
   "claimed_by": null
 }

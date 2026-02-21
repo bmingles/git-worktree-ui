@@ -3,22 +3,30 @@
   "description": "Create documentation and installation setup: Write README.md with project description, installation instructions (go install), usage examples, keyboard shortcuts. Add example config.yaml. Create Makefile with targets: build, install, test, clean. Add .gitignore for Go projects (bin/, .tasks/, etc). Document all TUI keyboard shortcuts and CLI commands.",
   "status": "todo",
   "created": "2026-02-20T23:47:52",
-  "updated": "2026-02-20T23:47:52",
-  "note": null,
+  "updated": "2026-02-21T00:25:35",
+  "note": "Updated with prerequisites and file references",
   "context": {
-    "files": [],
+    "files": [
+      "/Users/bingles/code/tools/wt/README.md",
+      "/Users/bingles/code/tools/wt/Makefile",
+      "/Users/bingles/code/tools/wt/.gitignore",
+      "/Users/bingles/code/tools/wt/example-config.yaml"
+    ],
     "docs": [],
     "skills": []
   },
   "acceptance_criteria": [
-    "README.md exists with complete usage documentation",
-    "Makefile exists with build, install, test, clean targets",
-    ".gitignore exists with appropriate entries",
-    "example-config.yaml exists showing sample configuration"
+    "PREREQUISITE: Task-09 must be completed first (need working CLI to document)",
+    "README.md exists with: project description, features list, installation via go install",
+    "README documents all CLI commands: wt, wt config add/list/init",
+    "README documents TUI keyboard shortcuts: arrows, Enter, o, c, d, q",
+    "Makefile exists with targets: build, install, test, clean",
+    ".gitignore includes: wt (binary), bin/, .tasks/, *.test, coverage.out",
+    "example-config.yaml shows sample with 2-3 example projects"
   ],
   "verification": {
     "type": "instruction",
-    "value": "Read README and verify all commands work as documented"
+    "value": "Read README and execute documented commands to verify accuracy"
   },
   "claimed_by": null
 }

@@ -3,22 +3,30 @@
   "description": "Implement worktree creation: Add CreateWorktree(projectPath, branchName, worktreePath string) error function to pkg/worktree package. Execute 'git worktree add <path> -b <branch>' command. Handle errors (branch exists, invalid path). Integrate into TUI: when 'c' pressed, show input form for branch name, then create worktree in <projectPath>/../<branchName>. Refresh worktree list after creation.",
   "status": "todo",
   "created": "2026-02-20T23:47:33",
-  "updated": "2026-02-20T23:47:33",
-  "note": null,
+  "updated": "2026-02-21T00:25:13",
+  "note": "Updated with prerequisites and file references",
   "context": {
-    "files": [],
+    "files": [
+      "/Users/bingles/code/tools/wt/pkg/worktree/worktree.go",
+      "/Users/bingles/code/tools/wt/pkg/worktree/operations.go",
+      "/Users/bingles/code/tools/wt/pkg/tui/model.go"
+    ],
     "docs": [],
     "skills": []
   },
   "acceptance_criteria": [
-    "CreateWorktree function exists in pkg/worktree/operations.go",
-    "Function executes git worktree add command correctly",
-    "TUI shows input form when 'c' is pressed",
-    "New worktree appears in list after creation"
+    "PREREQUISITES: Tasks 03 and 05 must be completed first",
+    "pkg/worktree/operations.go exists at /Users/bingles/code/tools/wt/pkg/worktree/operations.go",
+    "CreateWorktree(projectPath, branchName, worktreePath string) error function exists",
+    "Function executes: git worktree add <worktreePath> -b <branchName>",
+    "Returns error with message if branch exists or path invalid",
+    "TUI shows text input form when c key pressed",
+    "After creation, TUI refreshes worktree list to show new worktree",
+    "New worktree created at path: projectPath/../branchName"
   ],
   "verification": {
     "type": "instruction",
-    "value": "Press 'c', enter branch name, verify worktree created and appears in list"
+    "value": "Press c, enter branch name, verify new worktree created and appears in list"
   },
   "claimed_by": null
 }
