@@ -5,7 +5,7 @@
     {
       "id": "task-01",
       "description": "Initialize Go project structure: Create 'wt' directory with go.mod, main.go, and basic cmd/ and pkg/ folder structure. Use 'go mod init github.com/bmingles/wt' and add dependencies: cobra (CLI framework), bubbletea (TUI), lipgloss (styling), and go-git (git operations).",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-02",
