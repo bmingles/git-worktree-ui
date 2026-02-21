@@ -1,0 +1,24 @@
+{
+  "id": "task-08",
+  "description": "Implement worktree deletion: Add DeleteWorktree(worktreePath string) error function to pkg/worktree package. Execute 'git worktree remove <path>' command. Handle errors (worktree has changes, doesn't exist). Integrate into TUI: when 'd' pressed, show confirmation dialog with worktree details. If confirmed, delete worktree and refresh list. Prevent deletion of primary worktree.",
+  "status": "todo",
+  "created": "2026-02-20T23:47:38",
+  "updated": "2026-02-20T23:47:38",
+  "note": null,
+  "context": {
+    "files": [],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "DeleteWorktree function exists in pkg/worktree/operations.go",
+    "Function executes git worktree remove correctly",
+    "TUI shows confirmation dialog when 'd' pressed",
+    "Primary worktree cannot be deleted"
+  ],
+  "verification": {
+    "type": "instruction",
+    "value": "Press 'd' on non-primary worktree, confirm, verify it's removed from list"
+  },
+  "claimed_by": null
+}

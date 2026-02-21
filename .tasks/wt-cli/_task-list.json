@@ -1,0 +1,56 @@
+{
+  "name": "wt-cli",
+  "created_at": "2026-02-20T23:41:36",
+  "tasks": [
+    {
+      "id": "task-01",
+      "description": "Initialize Go project structure: Create 'wt' directory with go.mod, main.go, and basic cmd/ and pkg/ folder structure. Use 'go mod init github.com/bmingles/wt' and add dependencies: cobra (CLI framework), bubbletea (TUI), lipgloss (styling), and go-git (git operations).",
+      "status": "todo"
+    },
+    {
+      "id": "task-02",
+      "description": "Create configuration system: Implement config package that reads/writes ~/.config/wt/config.yaml. Config should store list of projects with 'name' and 'path' fields. Include functions: LoadConfig(), SaveConfig(), and InitConfig(). Config struct should be: type Config struct { Projects []Project }; type Project struct { Name string, Path string }.",
+      "status": "todo"
+    },
+    {
+      "id": "task-03",
+      "description": "Implement git worktree discovery: Create pkg/worktree package that lists worktrees for a given project path. Use 'git worktree list --porcelain' to get worktree data. Parse output into Worktree struct with fields: Path, Branch, Commit, IsPrimary. Create function ListWorktrees(projectPath string) ([]Worktree, error) that returns all worktrees for the project.",
+      "status": "todo"
+    },
+    {
+      "id": "task-04",
+      "description": "Add git status to worktree info: Extend worktree package to include git status for each worktree. Add GitStatus struct with fields: HasChanges bool, AheadBy int, BehindBy int. Add function GetStatus(worktreePath string) (GitStatus, error) that runs 'git status --porcelain --branch' and parses output. Update Worktree struct to include Status field.",
+      "status": "todo"
+    },
+    {
+      "id": "task-05",
+      "description": "Build interactive TUI for worktree navigation: Create pkg/tui package using bubbletea and lipgloss. Implement list view showing projects with their worktrees. Support keyboard navigation (↑/↓ arrows, Enter to select, 'o' to open in VS Code, 'c' to create worktree, 'd' to delete, 'q' to quit). Display worktree info: path, branch, git status indicators (*, ↑, ↓). Use lipgloss for styling (colors, borders). Model should track: selectedIndex, projects, worktrees.",
+      "status": "todo"
+    },
+    {
+      "id": "task-06",
+      "description": "Implement VS Code integration: Create pkg/vscode/vscode.go with function OpenInVSCode(worktreePath string) error that opens a worktree in VS Code. Use 'code' command with worktree path. Handle errors if VS Code not installed. Integrate this into TUI (when 'o' pressed or Enter on worktree). Should work on macOS by running 'code <path>'.",
+      "status": "todo"
+    },
+    {
+      "id": "task-07",
+      "description": "Implement worktree creation: Add CreateWorktree(projectPath, branchName, worktreePath string) error function to pkg/worktree package. Execute 'git worktree add <path> -b <branch>' command. Handle errors (branch exists, invalid path). Integrate into TUI: when 'c' pressed, show input form for branch name, then create worktree in <projectPath>/../<branchName>. Refresh worktree list after creation.",
+      "status": "todo"
+    },
+    {
+      "id": "task-08",
+      "description": "Implement worktree deletion: Add DeleteWorktree(worktreePath string) error function to pkg/worktree package. Execute 'git worktree remove <path>' command. Handle errors (worktree has changes, doesn't exist). Integrate into TUI: when 'd' pressed, show confirmation dialog with worktree details. If confirmed, delete worktree and refresh list. Prevent deletion of primary worktree.",
+      "status": "todo"
+    },
+    {
+      "id": "task-09",
+      "description": "Create CLI command structure with Cobra: Set up cobra commands in cmd/ directory. Commands: 'wt' (default: launch TUI), 'wt config add <name> <path>' (add project), 'wt config list' (list projects), 'wt config init' (create default config). Root command should load config and launch TUI if no subcommand. Add persistent flags for --config to specify custom config path.",
+      "status": "todo"
+    },
+    {
+      "id": "task-10",
+      "description": "Create documentation and installation setup: Write README.md with project description, installation instructions (go install), usage examples, keyboard shortcuts. Add example config.yaml. Create Makefile with targets: build, install, test, clean. Add .gitignore for Go projects (bin/, .tasks/, etc). Document all TUI keyboard shortcuts and CLI commands.",
+      "status": "todo"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "task-04",
+  "description": "Add git status to worktree info: Extend worktree package to include git status for each worktree. Add GitStatus struct with fields: HasChanges bool, AheadBy int, BehindBy int. Add function GetStatus(worktreePath string) (GitStatus, error) that runs 'git status --porcelain --branch' and parses output. Update Worktree struct to include Status field.",
+  "status": "todo",
+  "created": "2026-02-20T23:47:12",
+  "updated": "2026-02-20T23:47:12",
+  "note": null,
+  "context": {
+    "files": [],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "GitStatus struct exists in pkg/worktree/status.go",
+    "GetStatus function parses git status output correctly",
+    "Worktree struct includes Status GitStatus field"
+  ],
+  "verification": {
+    "type": "command",
+    "value": "cd wt && go test ./pkg/worktree"
+  },
+  "claimed_by": null
+}

@@ -1,0 +1,23 @@
+{
+  "id": "task-03",
+  "description": "Implement git worktree discovery: Create pkg/worktree package that lists worktrees for a given project path. Use 'git worktree list --porcelain' to get worktree data. Parse output into Worktree struct with fields: Path, Branch, Commit, IsPrimary. Create function ListWorktrees(projectPath string) ([]Worktree, error) that returns all worktrees for the project.",
+  "status": "todo",
+  "created": "2026-02-20T23:47:07",
+  "updated": "2026-02-20T23:47:07",
+  "note": null,
+  "context": {
+    "files": [],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "pkg/worktree/worktree.go exists with Worktree struct",
+    "ListWorktrees function parses 'git worktree list --porcelain' output",
+    "Function returns slice of Worktree structs with all fields populated"
+  ],
+  "verification": {
+    "type": "command",
+    "value": "cd wt && go test ./pkg/worktree"
+  },
+  "claimed_by": null
+}

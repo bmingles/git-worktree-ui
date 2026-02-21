@@ -1,0 +1,24 @@
+{
+  "id": "task-10",
+  "description": "Create documentation and installation setup: Write README.md with project description, installation instructions (go install), usage examples, keyboard shortcuts. Add example config.yaml. Create Makefile with targets: build, install, test, clean. Add .gitignore for Go projects (bin/, .tasks/, etc). Document all TUI keyboard shortcuts and CLI commands.",
+  "status": "todo",
+  "created": "2026-02-20T23:47:52",
+  "updated": "2026-02-20T23:47:52",
+  "note": null,
+  "context": {
+    "files": [],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "README.md exists with complete usage documentation",
+    "Makefile exists with build, install, test, clean targets",
+    ".gitignore exists with appropriate entries",
+    "example-config.yaml exists showing sample configuration"
+  ],
+  "verification": {
+    "type": "instruction",
+    "value": "Read README and verify all commands work as documented"
+  },
+  "claimed_by": null
+}
