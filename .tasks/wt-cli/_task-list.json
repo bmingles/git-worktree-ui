@@ -15,7 +15,7 @@
     {
       "id": "task-03",
       "description": "Implement git worktree discovery: Create pkg/worktree package that lists worktrees for a given project path. Use 'git worktree list --porcelain' to get worktree data. Parse output into Worktree struct with fields: Path, Branch, Commit, IsPrimary. Create function ListWorktrees(projectPath string) ([]Worktree, error) that returns all worktrees for the project.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-04",
