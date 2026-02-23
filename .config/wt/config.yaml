@@ -1,0 +1,4 @@
+projects:
+  - name: Project A
+    path: /workspaces/vscode-dashboard/test-ws/project-a
+

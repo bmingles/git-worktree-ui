@@ -1,0 +1,54 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/go .
+{
+  "name": "Go",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "image": "mcr.microsoft.com/devcontainers/go:2-1.25-trixie",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainer-config/features/dot-config:4": {}
+  },
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "go version",
+
+  // Configure tool-specific properties.
+  // "customizations": {},
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root",
+
+  "mounts": [
+    // Bind-mount skills from host into project directory for easier debugging of skills.
+    // Can remove the `readonly` setting if you want to edit them from the container
+    "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.agents/skills,type=bind,consistency=cached,readonly"
+  ],
+
+  "postCreateCommand": "echo '' >> ~/.bashrc && echo '# Custom prompt - hybrid of local + container features' >> ~/.bashrc && echo 'export PS1='\\''\\[\\]`export XIT=$?; [ \"$XIT\" -ne 0 ] && echo -n \"\\[\\033[1;31m\\]\" || echo -n \"\\[\\033[0m\\]\"`container`export FOLDER=$(basename \"$PWD\"); export BRANCH=\"$(git --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || git --no-optional-locks rev-parse --short HEAD 2>/dev/null)\"; if [ \"${BRANCH:-}\" != \"\" ]; then [ \"$FOLDER\" != \"$BRANCH\" ] && echo -n \" \\[\\033[32m\\]$FOLDER\"; echo -n \" \\[\\033[33m\\]($BRANCH)\"; else echo -n \" \\[\\033[32m\\]$FOLDER\"; fi`\\[\\033[00m\\] $ \\[\\]'\\''' >> ~/.bashrc",
+  "customizations": {
+    "vscode": {
+      // "extensions": ["GitHub.copilot", "GitHub.copilot-chat"],
+      "settings": {
+        "chat.tools.terminal.autoApprove": {
+          "/.*/": true
+        },
+        "chat.tools.terminal.ignoreDefaultAutoApproveRules": true,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "workbench.colorCustomizations": {
+          "statusBar.background": "#d37cef",
+          "statusBar.foreground": "#000000",
+          "titleBar.activeBackground": "#d37cef",
+          "titleBar.activeForeground": "#000000",
+          "titleBar.inactiveBackground": "#b17dc2"
+        }
+      }
+    }
+  }
+}
