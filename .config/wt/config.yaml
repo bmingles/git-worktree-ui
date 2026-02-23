@@ -1,4 +1,8 @@
 projects:
   - name: Project A
     path: /workspaces/vscode-dashboard/test-ws/project-a
+  - name: Project B
+    path: /workspaces/vscode-dashboard/test-ws/project-b
+  - name: Project C
+    path: /workspaces/vscode-dashboard/test-ws/project-c
 
