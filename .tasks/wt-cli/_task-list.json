@@ -50,7 +50,7 @@
     {
       "id": "task-10",
       "description": "Create documentation and installation setup: Write README.md with project description, installation instructions (go install), usage examples, keyboard shortcuts. Add example config.yaml. Create Makefile with targets: build, install, test, clean. Add .gitignore for Go projects (bin/, .tasks/, etc). Document all TUI keyboard shortcuts and CLI commands.",
-      "status": "todo"
+      "status": "completed"
     }
   ]
 }

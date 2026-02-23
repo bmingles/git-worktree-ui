@@ -1,0 +1,33 @@
+# Example configuration file for wt (Git Worktree Manager)
+#
+# This file should be placed at ~/.config/wt/config.yaml
+# You can also specify a custom location using the --config flag
+#
+# To get started:
+#   1. Copy this file to ~/.config/wt/config.yaml
+#   2. Update the paths to point to your actual Git repositories
+#   3. Run 'wt' to launch the TUI
+#
+# Or use the CLI commands:
+#   wt config init              # Create default config file
+#   wt config add <name> <path> # Add a project
+#   wt config list              # List configured projects
+
+projects:
+  # Dashboard application
+  - name: dashboard
+    path: /Users/username/code/vscode-dashboard
+
+  # Backend API service
+  - name: api-service
+    path: /Users/username/code/my-api
+
+  # Frontend web application
+  - name: frontend
+    path: /Users/username/projects/web-frontend
+
+# Notes:
+# - 'name' must be unique for each project
+# - 'path' should be an absolute path to a Git repository
+# - The path must exist and be a valid Git repository with worktree support
+# - You can add as many projects as needed
