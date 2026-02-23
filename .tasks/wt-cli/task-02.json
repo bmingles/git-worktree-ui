@@ -1,10 +1,10 @@
 {
   "id": "task-02",
   "description": "Create configuration system: Implement config package that reads/writes ~/.config/wt/config.yaml. Config should store list of projects with 'name' and 'path' fields. Include functions: LoadConfig(), SaveConfig(), and InitConfig(). Config struct should be: type Config struct { Projects []Project }; type Project struct { Name string, Path string }.",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-20T23:47:00",
-  "updated": "2026-02-23T15:19:36",
-  "note": "Updated with prerequisites and file references",
+  "updated": "2026-02-23T15:51:39",
+  "note": "Successfully implemented configuration system with Config/Project structs, InitConfig/LoadConfig/SaveConfig functions, and comprehensive tests. All 6 tests pass.",
   "context": {
     "files": [
       "/Users/bingles/code/tools/wt/go.mod",
@@ -26,7 +26,7 @@
     "type": "command",
     "value": "cd /Users/bingles/code/tools/wt && go test -v ./pkg/config"
   },
-  "claimed_by": null,
+  "claimed_by": "copilot-agent",
   "depends_on": [
     "task-01"
   ]

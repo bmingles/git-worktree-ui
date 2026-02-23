@@ -10,7 +10,7 @@
     {
       "id": "task-02",
       "description": "Create configuration system: Implement config package that reads/writes ~/.config/wt/config.yaml. Config should store list of projects with 'name' and 'path' fields. Include functions: LoadConfig(), SaveConfig(), and InitConfig(). Config struct should be: type Config struct { Projects []Project }; type Project struct { Name string, Path string }.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-03",
