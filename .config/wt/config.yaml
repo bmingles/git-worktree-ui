@@ -5,4 +5,3 @@ projects:
     path: /workspaces/vscode-dashboard/test-ws/project-b
   - name: Project C
     path: /workspaces/vscode-dashboard/test-ws/project-c
-

@@ -19,8 +19,26 @@ type Config struct {
 	Projects []Project `yaml:"projects"`
 }
 
+// customConfigPath holds the custom config path if set via --config flag
+var customConfigPath string
+
+// SetConfigPath sets a custom config path
+func SetConfigPath(path string) {
+	customConfigPath = path
+}
+
+// GetConfigPath returns the path to the config file (exported for use in cmd package)
+func GetConfigPath() (string, error) {
+	return getConfigPath()
+}
+
 // getConfigPath returns the path to the config file
 func getConfigPath() (string, error) {
+	// Use custom path if set
+	if customConfigPath != "" {
+		return customConfigPath, nil
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)

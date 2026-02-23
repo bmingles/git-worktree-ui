@@ -45,7 +45,7 @@
     {
       "id": "task-09",
       "description": "Create CLI command structure with Cobra: Set up cobra commands in cmd/ directory. Commands: 'wt' (default: launch TUI), 'wt config add <name> <path>' (add project), 'wt config list' (list projects), 'wt config init' (create default config). Root command should load config and launch TUI if no subcommand. Add persistent flags for --config to specify custom config path.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-10",
