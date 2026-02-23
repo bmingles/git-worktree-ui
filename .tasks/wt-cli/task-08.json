@@ -1,10 +1,10 @@
 {
   "id": "task-08",
   "description": "Implement worktree deletion: Add DeleteWorktree(worktreePath string) error function to pkg/worktree package. Execute 'git worktree remove <path>' command. Handle errors (worktree has changes, doesn't exist). Integrate into TUI: when 'd' pressed, show confirmation dialog with worktree details. If confirmed, delete worktree and refresh list. Prevent deletion of primary worktree.",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-20T23:47:38",
-  "updated": "2026-02-23T15:20:28",
-  "note": "Updated with prerequisites and file references",
+  "updated": "2026-02-23T17:45:52",
+  "note": "Implemented DeleteWorktree function in operations.go, added confirmation dialog to TUI with y/n prompt, prevents deletion of primary worktrees, refreshes list after deletion",
   "context": {
     "files": [
       "/Users/bingles/code/tools/wt/pkg/worktree/worktree.go",
@@ -27,7 +27,7 @@
     "type": "instruction",
     "value": "Select non-primary worktree, press d, confirm y, verify removed from list"
   },
-  "claimed_by": null,
+  "claimed_by": "copilot-agent",
   "depends_on": [
     "task-03",
     "task-05"

@@ -40,7 +40,7 @@
     {
       "id": "task-08",
       "description": "Implement worktree deletion: Add DeleteWorktree(worktreePath string) error function to pkg/worktree package. Execute 'git worktree remove <path>' command. Handle errors (worktree has changes, doesn't exist). Integrate into TUI: when 'd' pressed, show confirmation dialog with worktree details. If confirmed, delete worktree and refresh list. Prevent deletion of primary worktree.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-09",

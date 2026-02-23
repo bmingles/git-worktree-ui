@@ -88,6 +88,20 @@ func (m Model) View() string {
 		return boxStyle.Render(b.String())
 	}
 
+	// If in confirmation mode, show the delete confirmation prompt
+	if m.confirmMode {
+		b.WriteString(errorStyle.Render("Delete Worktree"))
+		b.WriteString("\n\n")
+		if m.confirmWorktree != nil {
+			b.WriteString(helpStyle.Render(fmt.Sprintf("Path: %s", m.confirmWorktree.Path)))
+			b.WriteString("\n")
+			b.WriteString(helpStyle.Render(fmt.Sprintf("Branch: %s", m.confirmWorktree.Branch)))
+			b.WriteString("\n\n")
+		}
+		b.WriteString(helpStyle.Render("Are you sure? (y/n)"))
+		return boxStyle.Render(b.String())
+	}
+
 	// Error display
 	if m.err != nil {
 		b.WriteString(errorStyle.Render(fmt.Sprintf("Error: %v", m.err)))

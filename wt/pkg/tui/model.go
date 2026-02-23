@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -12,15 +13,18 @@ import (
 
 // Model represents the TUI state for worktree navigation.
 type Model struct {
-	selectedIndex int                           // Index of currently selected item (across all projects+worktrees)
-	projects      []config.Project              // List of projects from config
-	worktrees     map[string][]worktree.Worktree // Map of project path to its worktrees
-	items         []Item                        // Flattened list of items for navigation
-	err           error                         // Error state
-	quitting      bool                          // True when user requests quit
-	inputMode     bool                          // True when in input mode (creating worktree)
-	textInput     textinput.Model               // Text input for branch name
-	inputProject  string                        // Project path for the worktree being created
+	selectedIndex    int                           // Index of currently selected item (across all projects+worktrees)
+	projects         []config.Project              // List of projects from config
+	worktrees        map[string][]worktree.Worktree // Map of project path to its worktrees
+	items            []Item                        // Flattened list of items for navigation
+	err              error                         // Error state
+	quitting         bool                          // True when user requests quit
+	inputMode        bool                          // True when in input mode (creating worktree)
+	textInput        textinput.Model               // Text input for branch name
+	inputProject     string                        // Project path for the worktree being created
+	confirmMode      bool                          // True when in confirmation mode (deleting worktree)
+	confirmWorktree  *worktree.Worktree            // Worktree to be deleted (pending confirmation)
+	confirmProject   string                        // Project path for the worktree being deleted
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -70,6 +74,30 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles messages and updates the model (bubbletea.Model interface).
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// If in confirmation mode, handle y/n input
+	if m.confirmMode {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "y", "Y":
+				// Confirm deletion
+				m.confirmMode = false
+				worktreePath := m.confirmWorktree.Path
+				projectPath := m.confirmProject
+				m.confirmWorktree = nil
+				m.confirmProject = ""
+				return m, m.deleteWorktree(projectPath, worktreePath)
+			case "n", "N", "esc", "ctrl+c":
+				// Cancel deletion
+				m.confirmMode = false
+				m.confirmWorktree = nil
+				m.confirmProject = ""
+				return m, nil
+			}
+		}
+		return m, nil
+	}
+	
 	// If in input mode, handle text input updates
 	if m.inputMode {
 		switch msg := msg.(type) {
@@ -110,6 +138,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.buildItems()
 		return m, nil
 	case worktreeCreatedMsg:
+		// Reload worktrees for the project
+		return m, m.reloadWorktrees(msg.projectPath)
+	case worktreeDeletedMsg:
 		// Reload worktrees for the project
 		return m, m.reloadWorktrees(msg.projectPath)
 	case worktreeErrorMsg:
@@ -155,7 +186,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		
 	case "d":
-		// TODO: Delete worktree
+		// Enter delete confirmation mode
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			if item.Type == ItemTypeWorktree && item.Worktree != nil {
+				// Check if it's a primary worktree
+				if item.Worktree.IsPrimary {
+					m.err = fmt.Errorf("cannot delete primary worktree")
+					return m, nil
+				}
+				
+				m.confirmMode = true
+				m.confirmWorktree = item.Worktree
+				m.confirmProject = item.ProjectPath
+				m.err = nil // Clear any previous errors
+			}
+		}
 	}
 	
 	return m, nil
@@ -227,6 +273,11 @@ type worktreeCreatedMsg struct {
 	projectPath string
 }
 
+// worktreeDeletedMsg is sent when a worktree is successfully deleted.
+type worktreeDeletedMsg struct {
+	projectPath string
+}
+
 // worktreeErrorMsg is sent when a worktree operation fails.
 type worktreeErrorMsg struct {
 	err error
@@ -288,5 +339,17 @@ func (m Model) reloadWorktrees(projectPath string) tea.Cmd {
 			projectPath: projectPath,
 			worktrees:   wts,
 		}
+	}
+}
+
+// deleteWorktree deletes a worktree.
+func (m Model) deleteWorktree(projectPath, worktreePath string) tea.Cmd {
+	return func() tea.Msg {
+		err := worktree.DeleteWorktree(worktreePath)
+		if err != nil {
+			return worktreeErrorMsg{err: err}
+		}
+		
+		return worktreeDeletedMsg{projectPath: projectPath}
 	}
 }
