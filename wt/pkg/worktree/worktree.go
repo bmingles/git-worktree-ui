@@ -14,6 +14,7 @@ type Worktree struct {
 	Branch    string
 	Commit    string
 	IsPrimary bool
+	Status    GitStatus
 }
 
 // ListWorktrees returns all worktrees for a given project path.
