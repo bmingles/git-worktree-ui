@@ -76,6 +76,18 @@ func (m Model) View() string {
 	b.WriteString(titleStyle.Render("Git Worktree Manager"))
 	b.WriteString("\n\n")
 
+	// If in input mode, show the create worktree prompt
+	if m.inputMode {
+		b.WriteString(helpStyle.Render("Create Worktree"))
+		b.WriteString("\n\n")
+		b.WriteString(helpStyle.Render("Branch name:"))
+		b.WriteString("\n")
+		b.WriteString(m.textInput.View())
+		b.WriteString("\n\n")
+		b.WriteString(helpStyle.Render("Press Enter to create • Esc to cancel"))
+		return boxStyle.Render(b.String())
+	}
+
 	// Error display
 	if m.err != nil {
 		b.WriteString(errorStyle.Render(fmt.Sprintf("Error: %v", m.err)))

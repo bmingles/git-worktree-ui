@@ -1,10 +1,12 @@
 package tui
 
 import (
-	"fmt"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/bmingles/wt/pkg/config"
+	"github.com/bmingles/wt/pkg/vscode"
 	"github.com/bmingles/wt/pkg/worktree"
 )
 
@@ -16,6 +18,9 @@ type Model struct {
 	items         []Item                        // Flattened list of items for navigation
 	err           error                         // Error state
 	quitting      bool                          // True when user requests quit
+	inputMode     bool                          // True when in input mode (creating worktree)
+	textInput     textinput.Model               // Text input for branch name
+	inputProject  string                        // Project path for the worktree being created
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -36,11 +41,19 @@ type Item struct {
 
 // NewModel creates a new TUI model with the given projects.
 func NewModel(projects []config.Project) Model {
+	ti := textinput.New()
+	ti.Placeholder = "branch-name"
+	ti.Focus()
+	ti.CharLimit = 100
+	ti.Width = 50
+	
 	m := Model{
 		selectedIndex: 0,
 		projects:      projects,
 		worktrees:     make(map[string][]worktree.Worktree),
 		items:         []Item{},
+		inputMode:     false,
+		textInput:     ti,
 	}
 	
 	// Build initial items list and load worktrees
@@ -57,12 +70,53 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles messages and updates the model (bubbletea.Model interface).
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// If in input mode, handle text input updates
+	if m.inputMode {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				// Create the worktree
+				branchName := m.textInput.Value()
+				if branchName != "" {
+					m.inputMode = false
+					return m, m.createWorktree(m.inputProject, branchName)
+				}
+				m.inputMode = false
+				m.textInput.Reset()
+				return m, nil
+			case "esc", "ctrl+c":
+				// Cancel input mode
+				m.inputMode = false
+				m.textInput.Reset()
+				return m, nil
+			default:
+				// Update textinput
+				var cmd tea.Cmd
+				m.textInput, cmd = m.textInput.Update(msg)
+				return m, cmd
+			}
+		}
+		var cmd tea.Cmd
+		m.textInput, cmd = m.textInput.Update(msg)
+		return m, cmd
+	}
+	
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKeyPress(msg)
 	case worktreesLoadedMsg:
 		m.worktrees[msg.projectPath] = msg.worktrees
 		m.buildItems()
+		return m, nil
+	case worktreeCreatedMsg:
+		// Reload worktrees for the project
+		return m, m.reloadWorktrees(msg.projectPath)
+	case worktreeErrorMsg:
+		m.err = msg.err
+		return m, nil
+	case vsCodeErrorMsg:
+		m.err = msg.err
 		return m, nil
 	}
 	
@@ -90,7 +144,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, m.openInVSCode()
 		
 	case "c":
-		// TODO: Create worktree
+		// Enter create mode
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			m.inputMode = true
+			m.inputProject = item.ProjectPath
+			m.textInput.Reset()
+			m.textInput.Focus()
+			m.err = nil // Clear any previous errors
+		}
 		
 	case "d":
 		// TODO: Delete worktree
@@ -155,6 +217,21 @@ type worktreesLoadedMsg struct {
 	worktrees   []worktree.Worktree
 }
 
+// vsCodeErrorMsg is sent when VS Code fails to open.
+type vsCodeErrorMsg struct {
+	err error
+}
+
+// worktreeCreatedMsg is sent when a worktree is successfully created.
+type worktreeCreatedMsg struct {
+	projectPath string
+}
+
+// worktreeErrorMsg is sent when a worktree operation fails.
+type worktreeErrorMsg struct {
+	err error
+}
+
 // openInVSCode opens the selected worktree in VS Code.
 func (m Model) openInVSCode() tea.Cmd {
 	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
@@ -167,9 +244,49 @@ func (m Model) openInVSCode() tea.Cmd {
 	}
 	
 	return func() tea.Msg {
-		// This would be implemented to actually execute the VS Code command
-		// For now, we just return a message
-		fmt.Printf("Opening %s in VS Code\n", item.Worktree.Path)
+		if err := vscode.OpenInVSCode(item.Worktree.Path); err != nil {
+			return vsCodeErrorMsg{err: err}
+		}
 		return nil
+	}
+}
+
+// createWorktree creates a new worktree for the given project.
+func (m Model) createWorktree(projectPath, branchName string) tea.Cmd {
+	return func() tea.Msg {
+		// Calculate worktree path: projectPath/../branchName
+		worktreePath := filepath.Join(filepath.Dir(projectPath), branchName)
+		
+		err := worktree.CreateWorktree(projectPath, branchName, worktreePath)
+		if err != nil {
+			return worktreeErrorMsg{err: err}
+		}
+		
+		return worktreeCreatedMsg{projectPath: projectPath}
+	}
+}
+
+// reloadWorktrees reloads the worktrees for a given project.
+func (m Model) reloadWorktrees(projectPath string) tea.Cmd {
+	return func() tea.Msg {
+		wts, err := worktree.ListWorktrees(projectPath)
+		if err != nil {
+			return worktreeErrorMsg{err: err}
+		}
+		
+		// Load status for each worktree
+		for i := range wts {
+			status, err := worktree.GetStatus(wts[i].Path)
+			if err != nil {
+				// Continue with empty status on error
+				continue
+			}
+			wts[i].Status = status
+		}
+		
+		return worktreesLoadedMsg{
+			projectPath: projectPath,
+			worktrees:   wts,
+		}
 	}
 }

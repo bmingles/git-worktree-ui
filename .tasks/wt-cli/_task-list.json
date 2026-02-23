@@ -30,12 +30,12 @@
     {
       "id": "task-06",
       "description": "Implement VS Code integration: Create pkg/vscode/vscode.go with function OpenInVSCode(worktreePath string) error that opens a worktree in VS Code. Use 'code' command with worktree path. Handle errors if VS Code not installed. Integrate this into TUI (when 'o' pressed or Enter on worktree). Should work on macOS by running 'code <path>'.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-07",
       "description": "Implement worktree creation: Add CreateWorktree(projectPath, branchName, worktreePath string) error function to pkg/worktree package. Execute 'git worktree add <path> -b <branch>' command. Handle errors (branch exists, invalid path). Integrate into TUI: when 'c' pressed, show input form for branch name, then create worktree in <projectPath>/../<branchName>. Refresh worktree list after creation.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-08",
