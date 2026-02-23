@@ -3,7 +3,7 @@
   "description": "Create configuration system: Implement config package that reads/writes ~/.config/wt/config.yaml. Config should store list of projects with 'name' and 'path' fields. Include functions: LoadConfig(), SaveConfig(), and InitConfig(). Config struct should be: type Config struct { Projects []Project }; type Project struct { Name string, Path string }.",
   "status": "todo",
   "created": "2026-02-20T23:47:00",
-  "updated": "2026-02-21T00:22:50",
+  "updated": "2026-02-23T15:19:36",
   "note": "Updated with prerequisites and file references",
   "context": {
     "files": [
@@ -15,7 +15,6 @@
     "skills": []
   },
   "acceptance_criteria": [
-    "PREREQUISITE: Task-01 must be completed first",
     "pkg/config/config.go exists at /Users/bingles/code/tools/wt/pkg/config/config.go",
     "Config and Project structs defined with yaml tags",
     "LoadConfig() reads from ~/.config/wt/config.yaml and returns Config struct",
@@ -27,5 +26,8 @@
     "type": "command",
     "value": "cd /Users/bingles/code/tools/wt && go test -v ./pkg/config"
   },
-  "claimed_by": null
+  "claimed_by": null,
+  "depends_on": [
+    "task-01"
+  ]
 }

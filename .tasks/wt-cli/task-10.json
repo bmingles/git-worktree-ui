@@ -3,7 +3,7 @@
   "description": "Create documentation and installation setup: Write README.md with project description, installation instructions (go install), usage examples, keyboard shortcuts. Add example config.yaml. Create Makefile with targets: build, install, test, clean. Add .gitignore for Go projects (bin/, .tasks/, etc). Document all TUI keyboard shortcuts and CLI commands.",
   "status": "todo",
   "created": "2026-02-20T23:47:52",
-  "updated": "2026-02-21T00:25:35",
+  "updated": "2026-02-23T15:20:41",
   "note": "Updated with prerequisites and file references",
   "context": {
     "files": [
@@ -16,7 +16,6 @@
     "skills": []
   },
   "acceptance_criteria": [
-    "PREREQUISITE: Task-09 must be completed first (need working CLI to document)",
     "README.md exists with: project description, features list, installation via go install",
     "README documents all CLI commands: wt, wt config add/list/init",
     "README documents TUI keyboard shortcuts: arrows, Enter, o, c, d, q",
@@ -28,5 +27,8 @@
     "type": "instruction",
     "value": "Read README and execute documented commands to verify accuracy"
   },
-  "claimed_by": null
+  "claimed_by": null,
+  "depends_on": [
+    "task-09"
+  ]
 }

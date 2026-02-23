@@ -3,7 +3,7 @@
   "description": "Implement VS Code integration: Create pkg/vscode/vscode.go with function OpenInVSCode(worktreePath string) error that opens a worktree in VS Code. Use 'code' command with worktree path. Handle errors if VS Code not installed. Integrate this into TUI (when 'o' pressed or Enter on worktree). Should work on macOS by running 'code <path>'.",
   "status": "todo",
   "created": "2026-02-20T23:47:26",
-  "updated": "2026-02-21T00:25:06",
+  "updated": "2026-02-23T15:20:15",
   "note": "Updated with prerequisites and file references",
   "context": {
     "files": [
@@ -14,7 +14,6 @@
     "skills": []
   },
   "acceptance_criteria": [
-    "PREREQUISITE: Task-05 must be completed first",
     "pkg/vscode/vscode.go exists at /Users/bingles/code/tools/wt/pkg/vscode/vscode.go",
     "OpenInVSCode(worktreePath string) error function exists",
     "Function uses exec.Command to run: code <worktreePath>",
@@ -26,5 +25,8 @@
     "type": "instruction",
     "value": "Select worktree and press o or Enter, verify VS Code opens that directory"
   },
-  "claimed_by": null
+  "claimed_by": null,
+  "depends_on": [
+    "task-05"
+  ]
 }

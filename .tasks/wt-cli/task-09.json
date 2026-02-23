@@ -3,7 +3,7 @@
   "description": "Create CLI command structure with Cobra: Set up cobra commands in cmd/ directory. Commands: 'wt' (default: launch TUI), 'wt config add <name> <path>' (add project), 'wt config list' (list projects), 'wt config init' (create default config). Root command should load config and launch TUI if no subcommand. Add persistent flags for --config to specify custom config path.",
   "status": "todo",
   "created": "2026-02-20T23:47:45",
-  "updated": "2026-02-21T00:25:28",
+  "updated": "2026-02-23T15:20:34",
   "note": "Updated with prerequisites and file references",
   "context": {
     "files": [
@@ -17,7 +17,6 @@
     "skills": []
   },
   "acceptance_criteria": [
-    "PREREQUISITES: Tasks 01, 02, 05 must be completed first",
     "cmd/root.go exists with cobra root command setup",
     "cmd/config.go exists with config subcommands: add, list, init",
     "Root command launches TUI when run with no arguments: wt",
@@ -31,5 +30,10 @@
     "type": "command",
     "value": "cd /Users/bingles/code/tools/wt && go build && ./wt config --help && ./wt --help"
   },
-  "claimed_by": null
+  "claimed_by": null,
+  "depends_on": [
+    "task-01",
+    "task-02",
+    "task-05"
+  ]
 }
