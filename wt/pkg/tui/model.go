@@ -305,8 +305,10 @@ func (m Model) openInVSCode() tea.Cmd {
 // createWorktree creates a new worktree for the given project.
 func (m Model) createWorktree(projectPath, branchName string) tea.Cmd {
 	return func() tea.Msg {
-		// Calculate worktree path: projectPath/../branchName
-		worktreePath := filepath.Join(filepath.Dir(projectPath), branchName)
+		// Calculate worktree path: projectPath/../projectName.worktrees/branchName
+		projectName := filepath.Base(projectPath)
+		worktreesDir := filepath.Join(filepath.Dir(projectPath), projectName+".worktrees")
+		worktreePath := filepath.Join(worktreesDir, branchName)
 		
 		err := worktree.CreateWorktree(projectPath, branchName, worktreePath)
 		if err != nil {
@@ -345,7 +347,7 @@ func (m Model) reloadWorktrees(projectPath string) tea.Cmd {
 // deleteWorktree deletes a worktree.
 func (m Model) deleteWorktree(projectPath, worktreePath string) tea.Cmd {
 	return func() tea.Msg {
-		err := worktree.DeleteWorktree(worktreePath)
+		err := worktree.DeleteWorktree(projectPath, worktreePath)
 		if err != nil {
 			return worktreeErrorMsg{err: err}
 		}

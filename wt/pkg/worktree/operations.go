@@ -50,7 +50,10 @@ func CreateWorktree(projectPath, branchName, worktreePath string) error {
 // DeleteWorktree removes a Git worktree at the specified path.
 // It executes 'git worktree remove <worktreePath>' from the project directory.
 // Returns an error if the worktree has uncommitted changes, doesn't exist, or is a primary worktree.
-func DeleteWorktree(worktreePath string) error {
+func DeleteWorktree(projectPath, worktreePath string) error {
+	if projectPath == "" {
+		return errors.New("projectPath cannot be empty")
+	}
 	if worktreePath == "" {
 		return errors.New("worktreePath cannot be empty")
 	}
@@ -59,6 +62,7 @@ func DeleteWorktree(worktreePath string) error {
 	worktreePath = filepath.Clean(worktreePath)
 
 	cmd := exec.Command("git", "worktree", "remove", worktreePath)
+	cmd.Dir = projectPath
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
