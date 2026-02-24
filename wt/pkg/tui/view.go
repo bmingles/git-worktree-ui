@@ -285,7 +285,7 @@ func (m Model) renderHelp() string {
 			help = []string{
 				"[c] create worktree",
 				"[a] add project",
-				"[q] quit",
+				"[esc/q] quit",
 			}
 		case ItemTypeWorktree:
 			if item.Worktree != nil && !item.Worktree.IsPrimary {
@@ -293,20 +293,20 @@ func (m Model) renderHelp() string {
 					"[c] create worktree",
 					"[d] delete worktree",
 					"[a] add project",
-					"[q] quit",
+					"[esc/q] quit",
 				}
 			} else {
 				help = []string{
 					"[c] create worktree",
 					"[a] add project",
-					"[q] quit",
+					"[esc/q] quit",
 				}
 			}
 		}
 	} else {
 		help = []string{
 			"[a] add project",
-			"[q] quit",
+			"[esc/q] quit",
 		}
 	}
 	
