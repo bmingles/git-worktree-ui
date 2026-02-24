@@ -341,7 +341,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.selectedIndex++
 		}
 		
-	case "enter", "o":
+	case "enter":
 		// Handle Enter key based on item type
 		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
 			item := m.items[m.selectedIndex]
@@ -355,6 +355,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				// Open worktree in VS Code
 				return m, m.openInVSCode()
 			}
+		}
+		return m, nil
+		
+	case "o":
+		// 'o' always opens in VS Code (for both projects and worktrees)
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			return m, m.openInVSCode()
 		}
 		return m, nil
 		
@@ -532,19 +539,30 @@ type projectAddedMsg struct {
 	projectPath string
 }
 
-// openInVSCode opens the selected worktree in VS Code.
+// openInVSCode opens the selected item (project or worktree) in VS Code.
 func (m Model) openInVSCode() tea.Cmd {
 	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
 		return nil
 	}
 	
 	item := m.items[m.selectedIndex]
-	if item.Type != ItemTypeWorktree || item.Worktree == nil {
+	
+	// Determine the path to open based on item type
+	var pathToOpen string
+	switch item.Type {
+	case ItemTypeProject:
+		pathToOpen = item.ProjectPath
+	case ItemTypeWorktree:
+		if item.Worktree == nil {
+			return nil
+		}
+		pathToOpen = item.Worktree.Path
+	default:
 		return nil
 	}
 	
 	return func() tea.Msg {
-		if err := vscode.OpenInVSCode(item.Worktree.Path); err != nil {
+		if err := vscode.OpenInVSCode(pathToOpen); err != nil {
 			return vsCodeErrorMsg{err: err}
 		}
 		return nil

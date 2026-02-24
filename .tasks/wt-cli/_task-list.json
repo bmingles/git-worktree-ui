@@ -65,7 +65,7 @@
     {
       "id": "task-13",
       "description": "When user selects a node to open in VS Code, vscode.OpenInVSCode currently opens the folder path directly. Check if a .code-workspace file exists in the directory first. If found, prefer opening that workspace file over the folder",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-14",
