@@ -15,3 +15,5 @@
 {"id":"task-09","status":"in_progress","timestamp":"2026-02-23T19:25:49","note":"Starting implementation of Cobra CLI structure"}
 {"id":"task-09","status":"completed","timestamp":"2026-02-23T19:32:46","note":"Successfully implemented Cobra CLI structure with root command, config subcommands (add, list, init), persistent --config flag, and main.go integration. All acceptance criteria verified."}
 {"id":"task-10","status":"completed","timestamp":"2026-02-23T19:58:13","note":"Created all documentation files: README.md, Makefile, example-config.yaml. All files tested and working."}
+{"id":"task-11","status":"in_progress","timestamp":"2026-02-24T15:08:06","note":"Claimed by agent - implementing collapsible project nodes"}
+{"id":"task-11","status":"completed","timestamp":"2026-02-24T15:11:37","note":"Successfully implemented collapsible project nodes with keyboard shortcuts (space, enter, left/right arrows). All projects default to collapsed state. Visual indicators (▸/▾) show expansion state."}

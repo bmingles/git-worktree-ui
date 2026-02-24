@@ -34,6 +34,7 @@ type Model struct {
 	pendingProjectName string                         // Project name while collecting path
 	pathSuggestions    []string                       // Path autocompletion suggestions
 	selectedSuggestion int                            // Index of selected suggestion
+	expandedProjects   map[string]bool                // Map of project path to expansion state
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -79,6 +80,12 @@ func NewModel(projects []config.Project) Model {
 		textInput:        ti,
 		projectNameInput: nameInput,
 		projectPathInput: pathInput,
+		expandedProjects: make(map[string]bool),
+	}
+	
+	// Initialize all projects as collapsed (default state)
+	for _, project := range projects {
+		m.expandedProjects[project.Path] = false
 	}
 	
 	// Build initial items list and load worktrees
@@ -291,11 +298,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.buildItems()
 		m.loadWorktrees()
 		
+		// Initialize expansion state for new project (collapsed by default)
+		if _, exists := m.expandedProjects[msg.projectPath]; !exists {
+			m.expandedProjects[msg.projectPath] = false
+		}
+		
 		// Find and select the newly added project
 		for i, item := range m.items {
 			if item.Type == ItemTypeProject && item.ProjectPath == msg.projectPath {
 				m.selectedIndex = i
-				m.buildItems() // Rebuild to expand the selected project
 				break
 			}
 		}
@@ -315,13 +326,11 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "up", "k":
 		if m.selectedIndex > 0 {
 			m.selectedIndex--
-			m.buildItems() // Rebuild to update expansion
 		}
 		
 	case "down", "j":
 		if m.selectedIndex < len(m.items)-1 {
 			m.selectedIndex++
-			m.buildItems() // Rebuild to update expansion
 		}
 		
 	case "enter", "o":
@@ -330,7 +339,9 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			item := m.items[m.selectedIndex]
 			switch item.Type {
 			case ItemTypeProject:
-				// Project selection handled by buildItems automatically
+				// Toggle project expansion on Enter
+				m.expandedProjects[item.ProjectPath] = !m.expandedProjects[item.ProjectPath]
+				m.buildItems()
 				return m, nil
 			case ItemTypeWorktree:
 				// Open worktree in VS Code
@@ -340,7 +351,36 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 		
 	case " ":
-		// Space does nothing now - expansion is automatic
+		// Space toggles project expansion
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			if item.Type == ItemTypeProject {
+				m.expandedProjects[item.ProjectPath] = !m.expandedProjects[item.ProjectPath]
+				m.buildItems()
+			}
+		}
+		return m, nil
+		
+	case "right", "l":
+		// Right arrow expands project
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			if item.Type == ItemTypeProject {
+				m.expandedProjects[item.ProjectPath] = true
+				m.buildItems()
+			}
+		}
+		return m, nil
+		
+	case "left", "h":
+		// Left arrow collapses project
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			if item.Type == ItemTypeProject {
+				m.expandedProjects[item.ProjectPath] = false
+				m.buildItems()
+			}
+		}
 		return m, nil
 		
 	case "a":
@@ -389,16 +429,6 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // buildItems creates a flattened list of items for navigation.
 func (m *Model) buildItems() {
-	// Determine which project should be expanded (the one containing the selected item)
-	selectedProjectPath := ""
-	if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
-		selectedItem := m.items[m.selectedIndex]
-		selectedProjectPath = selectedItem.ProjectPath
-	} else if len(m.projects) > 0 {
-		// If no selection yet, expand first project
-		selectedProjectPath = m.projects[0].Path
-	}
-	
 	oldItemsCount := len(m.items)
 	m.items = []Item{}
 	
@@ -410,8 +440,8 @@ func (m *Model) buildItems() {
 			ProjectPath: project.Path,
 		})
 		
-		// Add worktrees for this project only if it's the selected project
-		if project.Path == selectedProjectPath {
+		// Add worktrees for this project only if it's expanded
+		if m.expandedProjects[project.Path] {
 			if wts, ok := m.worktrees[project.Path]; ok {
 				for i := range wts {
 					m.items = append(m.items, Item{

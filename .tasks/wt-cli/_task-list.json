@@ -55,7 +55,7 @@
     {
       "id": "task-11",
       "description": "TUI currently auto-expands all project nodes showing their worktrees. Change behavior to make project nodes collapsible and default them to collapsed state on initial display",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-12",
