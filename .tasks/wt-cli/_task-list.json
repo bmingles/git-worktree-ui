@@ -60,7 +60,7 @@
     {
       "id": "task-12",
       "description": "Border box width is hardcoded to 45 in view.go. For longer project names or paths, text gets truncated. Research TUI widget sizing patterns and implement dynamic sizing that adapts to terminal width while maintaining readability",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-13",

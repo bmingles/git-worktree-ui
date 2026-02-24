@@ -17,3 +17,5 @@
 {"id":"task-10","status":"completed","timestamp":"2026-02-23T19:58:13","note":"Created all documentation files: README.md, Makefile, example-config.yaml. All files tested and working."}
 {"id":"task-11","status":"in_progress","timestamp":"2026-02-24T15:08:06","note":"Claimed by agent - implementing collapsible project nodes"}
 {"id":"task-11","status":"completed","timestamp":"2026-02-24T15:11:37","note":"Successfully implemented collapsible project nodes with keyboard shortcuts (space, enter, left/right arrows). All projects default to collapsed state. Visual indicators (▸/▾) show expansion state."}
+{"id":"task-12","status":"in_progress","timestamp":"2026-02-24T15:22:34","note":"Starting work on dynamic border box sizing"}
+{"id":"task-12","status":"completed","timestamp":"2026-02-24T15:24:30","note":"Implemented dynamic border box sizing: Added width/height fields to Model struct, handle WindowSizeMsg to track terminal dimensions, calculate dynamic box width (terminal width - 4, min 45, max 120) in View function. Box now adapts to terminal width while maintaining readability with minimum and maximum constraints."}

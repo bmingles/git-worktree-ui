@@ -35,6 +35,8 @@ type Model struct {
 	pathSuggestions    []string                       // Path autocompletion suggestions
 	selectedSuggestion int                            // Index of selected suggestion
 	expandedProjects   map[string]bool                // Map of project path to expansion state
+	width              int                            // Terminal width
+	height             int                            // Terminal height
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -81,6 +83,8 @@ func NewModel(projects []config.Project) Model {
 		projectNameInput: nameInput,
 		projectPathInput: pathInput,
 		expandedProjects: make(map[string]bool),
+		width:            80,  // Default width
+		height:           24,  // Default height
 	}
 	
 	// Initialize all projects as collapsed (default state)
@@ -269,6 +273,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
 	case tea.KeyMsg:
 		return m.handleKeyPress(msg)
 	case worktreesLoadedMsg:

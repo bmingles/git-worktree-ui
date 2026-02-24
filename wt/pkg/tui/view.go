@@ -66,8 +66,7 @@ var (
 	boxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#7D56F4")).
-			Padding(1, 2).
-			Width(45)
+			Padding(1, 2)
 )
 
 // View renders the model (bubbletea.Model interface).
@@ -76,6 +75,15 @@ func (m Model) View() string {
 		return ""
 	}
 
+	// Calculate content width - use min of (terminal width - margins) or max width
+	contentWidth := m.width - 8 // Leave margin for terminal edges
+	if contentWidth > 120 {
+		contentWidth = 120
+	}
+	if contentWidth < 40 {
+		contentWidth = 40
+	}
+	
 	var b strings.Builder
 
 	// Title
@@ -123,7 +131,8 @@ func (m Model) View() string {
 			b.WriteString("\n")
 			b.WriteString(helpStyle.Render("Press Enter to add • Esc to cancel"))
 		}
-		return boxStyle.Render(b.String())
+		content := boxStyle.Width(contentWidth).Render(b.String())
+		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 	}
 
 	// If in input mode, show the create worktree prompt
@@ -134,7 +143,8 @@ func (m Model) View() string {
 		b.WriteString(m.textInput.View())
 		b.WriteString("\n\n")
 		b.WriteString(helpStyle.Render("Press Enter to create • Esc to cancel"))
-		return boxStyle.Render(b.String())
+		content := boxStyle.Width(contentWidth).Render(b.String())
+		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 	}
 
 	// If in confirmation mode, show the delete confirmation prompt
@@ -148,7 +158,8 @@ func (m Model) View() string {
 			b.WriteString("\n\n")
 		}
 		b.WriteString(helpStyle.Render("Are you sure? (y/n)"))
-		return boxStyle.Render(b.String())
+		content := boxStyle.Width(contentWidth).Render(b.String())
+		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 	}
 
 	// Error display
@@ -164,7 +175,8 @@ func (m Model) View() string {
 	b.WriteString("\n")
 	b.WriteString(m.renderHelp())
 
-	return boxStyle.Render(b.String())
+	content := boxStyle.Width(contentWidth).Render(b.String())
+	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 }
 
 // renderItems renders the list of projects and worktrees.
