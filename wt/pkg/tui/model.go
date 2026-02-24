@@ -177,22 +177,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// Generate suggestions if we don't have any
 					if len(m.pathSuggestions) == 0 {
 						m.pathSuggestions = getPathSuggestions(input)
-						m.selectedSuggestion = 0
+						m.selectedSuggestion = -1 // -1 means no selection yet
 						
-						// Show first suggestion or complete if only one
+						// If only one suggestion, auto-complete it
 						if len(m.pathSuggestions) == 1 {
 							// Only one match - auto-complete it
 							m.projectPathInput.SetValue(m.pathSuggestions[0])
 							m.projectPathInput.SetCursor(len(m.pathSuggestions[0]))
 							m.pathSuggestions = nil // Clear after completing
-						} else if len(m.pathSuggestions) > 1 {
-							// Multiple matches - show first one
-							m.projectPathInput.SetValue(m.pathSuggestions[0])
-							m.projectPathInput.SetCursor(len(m.pathSuggestions[0]))
 						}
+						// If multiple suggestions, just show them (don't select yet)
 					} else if len(m.pathSuggestions) > 1 {
 						// Suggestions already showing - cycle to next
-						m.selectedSuggestion = (m.selectedSuggestion + 1) % len(m.pathSuggestions)
+						if m.selectedSuggestion == -1 {
+							m.selectedSuggestion = 0 // Start at first item
+						} else {
+							m.selectedSuggestion = (m.selectedSuggestion + 1) % len(m.pathSuggestions)
+						}
 						m.projectPathInput.SetValue(m.pathSuggestions[m.selectedSuggestion])
 						m.projectPathInput.SetCursor(len(m.pathSuggestions[m.selectedSuggestion]))
 					}
@@ -201,9 +202,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "shift+tab":
 				// Cycle backwards through suggestions
 				if m.addProjectStep == 1 && len(m.pathSuggestions) > 1 {
-					m.selectedSuggestion--
-					if m.selectedSuggestion < 0 {
+					if m.selectedSuggestion == -1 {
+						// Start at last item if not yet cycling
 						m.selectedSuggestion = len(m.pathSuggestions) - 1
+					} else {
+						m.selectedSuggestion--
+						if m.selectedSuggestion < 0 {
+							m.selectedSuggestion = len(m.pathSuggestions) - 1
+						}
 					}
 					m.projectPathInput.SetValue(m.pathSuggestions[m.selectedSuggestion])
 					m.projectPathInput.SetCursor(len(m.pathSuggestions[m.selectedSuggestion]))

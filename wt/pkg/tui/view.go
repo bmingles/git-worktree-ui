@@ -116,7 +116,7 @@ func (m Model) View() string {
 					if suggestion[len(suggestion)-1] == filepath.Separator {
 						display += "/"
 					}
-					if i == m.selectedSuggestion {
+					if m.selectedSuggestion >= 0 && i == m.selectedSuggestion {
 						// White and bold for selected
 						parts = append(parts, "\033[1;37m"+display+"\033[0m")
 					} else {
