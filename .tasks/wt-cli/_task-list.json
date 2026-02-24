@@ -70,7 +70,7 @@
     {
       "id": "task-14",
       "description": "Worktree listing should use 'git worktree list' to discover worktrees instead of assuming they live in a .worktrees folder. The code already uses git commands in ListWorktrees(), but verify it doesn't rely on path conventions for discovery",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-15",
