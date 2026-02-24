@@ -442,7 +442,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
-	case "a":
+	case "n":
 		// Trigger add project mode
 		m.addProjectMode = true
 		m.addProjectStep = 0
@@ -453,7 +453,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.err = nil
 		return m, nil
 		
-	case "c":
+	case "a":
 		// Enter create mode
 		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
 			item := m.items[m.selectedIndex]

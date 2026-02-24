@@ -139,6 +139,20 @@ func (m Model) View() string {
 	if m.inputMode {
 		b.WriteString(helpStyle.Render("Create Worktree"))
 		b.WriteString("\n\n")
+		
+		// Show which project this worktree will be added to
+		projectName := ""
+		for _, proj := range m.projects {
+			if proj.Path == m.inputProject {
+				projectName = proj.Name
+				break
+			}
+		}
+		if projectName != "" {
+			b.WriteString(helpStyle.Render(fmt.Sprintf("Project: %s", projectName)))
+			b.WriteString("\n\n")
+		}
+		
 		if m.inputStep == 0 {
 			b.WriteString(helpStyle.Render("Branch name: "))
 			b.WriteString(m.textInput.View())
@@ -304,29 +318,29 @@ func (m Model) renderHelp() string {
 		switch item.Type {
 		case ItemTypeProject:
 			help = []string{
-				"[c] create worktree",
-				"[a] add project",
+				"[a] add worktree",
+				"[n] new project",
 				"[esc/q] quit",
 			}
 		case ItemTypeWorktree:
 			if item.Worktree != nil && !item.Worktree.IsPrimary {
 				help = []string{
-					"[c] create worktree",
+					"[a] add worktree",
 					"[d] delete worktree",
-					"[a] add project",
+					"[n] new project",
 					"[esc/q] quit",
 				}
 			} else {
 				help = []string{
-					"[c] create worktree",
-					"[a] add project",
+					"[a] add worktree",
+					"[n] new project",
 					"[esc/q] quit",
 				}
 			}
 		}
 	} else {
 		help = []string{
-			"[a] add project",
+			"[n] new project",
 			"[esc/q] quit",
 		}
 	}
