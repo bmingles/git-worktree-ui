@@ -1,0 +1,26 @@
+{
+  "id": "task-15",
+  "description": "Worktree creation in CreateWorktree hardcodes destination path. Add ability to specify destination directory while defaulting to current convention (.worktrees/branch-name relative to project root). Update TUI to allow optional path specification during worktree creation",
+  "status": "todo",
+  "created": "2026-02-24T15:04:20",
+  "updated": "2026-02-24T15:04:20",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/worktree/operations.go",
+      "wt/pkg/tui/model.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "CreateWorktree should accept optional destination parameter",
+    "When destination not specified, default to projectPath/.worktrees/branchName",
+    "TUI input mode should allow optional path input (e.g., advanced mode or second prompt)",
+    "Path should be validated and normalized before passing to git worktree add",
+    "Relative paths should be resolved relative to project root"
+  ],
+  "verification": null,
+  "depends_on": [],
+  "claimed_by": null
+}

@@ -1,0 +1,25 @@
+{
+  "id": "task-11",
+  "description": "TUI currently auto-expands all project nodes showing their worktrees. Change behavior to make project nodes collapsible and default them to collapsed state on initial display",
+  "status": "todo",
+  "created": "2026-02-24T15:03:57",
+  "updated": "2026-02-24T15:03:57",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/tui/model.go",
+      "wt/pkg/tui/view.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Project nodes should be collapsible/expandable with keyboard shortcut (e.g., space or right/left arrow)",
+    "Projects should default to collapsed state when TUI starts",
+    "Expand/collapse state should be tracked per project",
+    "Visual indicator (e.g., arrow) should show expand/collapse state"
+  ],
+  "verification": null,
+  "depends_on": [],
+  "claimed_by": null
+}

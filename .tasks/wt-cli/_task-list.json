@@ -51,6 +51,31 @@
       "id": "task-10",
       "description": "Create documentation and installation setup: Write README.md with project description, installation instructions (go install), usage examples, keyboard shortcuts. Add example config.yaml. Create Makefile with targets: build, install, test, clean. Add .gitignore for Go projects (bin/, .tasks/, etc). Document all TUI keyboard shortcuts and CLI commands.",
       "status": "completed"
+    },
+    {
+      "id": "task-11",
+      "description": "TUI currently auto-expands all project nodes showing their worktrees. Change behavior to make project nodes collapsible and default them to collapsed state on initial display",
+      "status": "todo"
+    },
+    {
+      "id": "task-12",
+      "description": "Border box width is hardcoded to 45 in view.go. For longer project names or paths, text gets truncated. Research TUI widget sizing patterns and implement dynamic sizing that adapts to terminal width while maintaining readability",
+      "status": "todo"
+    },
+    {
+      "id": "task-13",
+      "description": "When user selects a node to open in VS Code, vscode.OpenInVSCode currently opens the folder path directly. Check if a .code-workspace file exists in the directory first. If found, prefer opening that workspace file over the folder",
+      "status": "todo"
+    },
+    {
+      "id": "task-14",
+      "description": "Worktree listing should use 'git worktree list' to discover worktrees instead of assuming they live in a .worktrees folder. The code already uses git commands in ListWorktrees(), but verify it doesn't rely on path conventions for discovery",
+      "status": "todo"
+    },
+    {
+      "id": "task-15",
+      "description": "Worktree creation in CreateWorktree hardcodes destination path. Add ability to specify destination directory while defaulting to current convention (.worktrees/branch-name relative to project root). Update TUI to allow optional path specification during worktree creation",
+      "status": "todo"
     }
   ]
 }

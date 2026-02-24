@@ -33,8 +33,5 @@ go.work
 .DS_Store
 Thumbs.db
 
-# Task tracking
-.tasks/
-
 # Config files (optional - remove if you want to track example configs)
 config.yaml

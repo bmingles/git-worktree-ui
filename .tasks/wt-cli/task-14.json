@@ -1,0 +1,25 @@
+{
+  "id": "task-14",
+  "description": "Worktree listing should use 'git worktree list' to discover worktrees instead of assuming they live in a .worktrees folder. The code already uses git commands in ListWorktrees(), but verify it doesn't rely on path conventions for discovery",
+  "status": "todo",
+  "created": "2026-02-24T15:04:19",
+  "updated": "2026-02-24T15:04:19",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/worktree/worktree.go",
+      "wt/pkg/tui/model.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Verify ListWorktrees properly uses 'git worktree list --porcelain' without path assumptions",
+    "Remove any code that assumes worktrees are in .worktrees/ folder relative to project",
+    "Worktrees should be discovered regardless of their location on filesystem",
+    "Existing tests in worktree_test.go should continue to pass"
+  ],
+  "verification": null,
+  "depends_on": [],
+  "claimed_by": null
+}

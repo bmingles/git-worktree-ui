@@ -1,0 +1,25 @@
+{
+  "id": "task-13",
+  "description": "When user selects a node to open in VS Code, vscode.OpenInVSCode currently opens the folder path directly. Check if a .code-workspace file exists in the directory first. If found, prefer opening that workspace file over the folder",
+  "status": "todo",
+  "created": "2026-02-24T15:04:18",
+  "updated": "2026-02-24T15:04:18",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/vscode/vscode.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Check for *.code-workspace files in the target directory before opening",
+    "If a .code-workspace file exists, pass that to 'code' command instead of directory",
+    "If multiple .code-workspace files exist, choose deterministically (e.g., alphabetically first or shortest name)",
+    "If no .code-workspace file exists, fall back to current behavior (open directory)",
+    "Handle errors gracefully if workspace file exists but can't be read"
+  ],
+  "verification": null,
+  "depends_on": [],
+  "claimed_by": null
+}
