@@ -61,7 +61,8 @@ var (
 	boxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#7D56F4")).
-			Padding(1, 2)
+			Padding(1, 2).
+			Width(45)
 )
 
 // View renders the model (bubbletea.Model interface).
@@ -76,12 +77,31 @@ func (m Model) View() string {
 	b.WriteString(titleStyle.Render("Git Worktree Manager"))
 	b.WriteString("\n\n")
 
+	// If in add project mode, show the add project prompt
+	if m.addProjectMode {
+		b.WriteString(helpStyle.Render("Add Project"))
+		b.WriteString("\n\n")
+		if m.addProjectStep == 0 {
+			b.WriteString(helpStyle.Render("Project name: "))
+			b.WriteString(m.projectNameInput.View())
+			b.WriteString("\n\n")
+			b.WriteString(helpStyle.Render("Press Enter to continue • Esc to cancel"))
+		} else {
+			b.WriteString(helpStyle.Render(fmt.Sprintf("Project: %s", m.pendingProjectName)))
+			b.WriteString("\n\n")
+			b.WriteString(helpStyle.Render("Project path: "))
+			b.WriteString(m.projectPathInput.View())
+			b.WriteString("\n\n")
+			b.WriteString(helpStyle.Render("Press Enter to add • Esc to cancel"))
+		}
+		return boxStyle.Render(b.String())
+	}
+
 	// If in input mode, show the create worktree prompt
 	if m.inputMode {
 		b.WriteString(helpStyle.Render("Create Worktree"))
 		b.WriteString("\n\n")
-		b.WriteString(helpStyle.Render("Branch name:"))
-		b.WriteString("\n")
+		b.WriteString(helpStyle.Render("Branch name: "))
 		b.WriteString(m.textInput.View())
 		b.WriteString("\n\n")
 		b.WriteString(helpStyle.Render("Press Enter to create • Esc to cancel"))
@@ -109,11 +129,7 @@ func (m Model) View() string {
 	}
 
 	// Render items
-	if len(m.items) == 0 {
-		b.WriteString(helpStyle.Render("No projects configured. Add projects to ~/.config/wt/config.yaml"))
-	} else {
-		b.WriteString(m.renderItems())
-	}
+	b.WriteString(m.renderItems())
 
 	// Help text
 	b.WriteString("\n")
@@ -147,13 +163,33 @@ func (m Model) renderProject(item Item, isSelected bool) string {
 	if isSelected {
 		style = selectedProjectStyle
 	}
-
-	cursor := "  "
-	if isSelected {
-		cursor = "▶ "
+	
+	// Check if this project is expanded by looking at the next item
+	isExpanded := false
+	for i, it := range m.items {
+		if it.Type == ItemTypeProject && it.ProjectPath == item.ProjectPath {
+			// Check if next item is a worktree from this project
+			if i+1 < len(m.items) && m.items[i+1].Type == ItemTypeWorktree && m.items[i+1].ProjectPath == item.ProjectPath {
+				isExpanded = true
+			}
+			break
+		}
+	}
+	
+	// Expansion indicator
+	expandIcon := "▸"
+	if isExpanded {
+		expandIcon = "▾"
+	}
+	
+	// Worktree count (always show for consistency)
+	countStr := ""
+	if wts, ok := m.worktrees[item.ProjectPath]; ok {
+		count := len(wts)
+		countStr = statusStyle.Render(fmt.Sprintf(" (%d)", count))
 	}
 
-	return style.Render(fmt.Sprintf("%s%s", cursor, item.ProjectName))
+	return style.Render(fmt.Sprintf("%s %s%s", expandIcon, item.ProjectName, countStr))
 }
 
 // renderWorktree renders a worktree item with status indicators.
@@ -165,11 +201,6 @@ func (m Model) renderWorktree(item Item, isSelected bool) string {
 	style := worktreeStyle
 	if isSelected {
 		style = selectedWorktreeStyle
-	}
-
-	cursor := "  "
-	if isSelected {
-		cursor = "▶ "
 	}
 
 	wt := item.Worktree
@@ -209,18 +240,46 @@ func (m Model) renderWorktree(item Item, isSelected bool) string {
 		statusStr = " " + statusStyle.Render(strings.Join(indicators, " "))
 	}
 
-	text := fmt.Sprintf("%s%s%s", cursor, branchDisplay, statusStr)
+	text := fmt.Sprintf("  %s%s", branchDisplay, statusStr)
 	return style.Render(text)
 }
 
 // renderHelp renders the help text.
 func (m Model) renderHelp() string {
-	helps := []string{
-		"↑/↓: navigate",
-		"enter/o: open in VS Code",
-		"c: create worktree",
-		"d: delete worktree",
-		"q: quit",
+	var help []string
+	
+	if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+		item := m.items[m.selectedIndex]
+		
+		switch item.Type {
+		case ItemTypeProject:
+			help = []string{
+				"[c] create worktree",
+				"[a] add project",
+				"[q] quit",
+			}
+		case ItemTypeWorktree:
+			if item.Worktree != nil && !item.Worktree.IsPrimary {
+				help = []string{
+					"[c] create worktree",
+					"[d] delete worktree",
+					"[a] add project",
+					"[q] quit",
+				}
+			} else {
+				help = []string{
+					"[c] create worktree",
+					"[a] add project",
+					"[q] quit",
+				}
+			}
+		}
+	} else {
+		help = []string{
+			"[a] add project",
+			"[q] quit",
+		}
 	}
-	return helpStyle.Render(strings.Join(helps, " • "))
+	
+	return helpStyle.Render(strings.Join(help, "\n"))
 }

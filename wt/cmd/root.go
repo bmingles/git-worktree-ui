@@ -57,14 +57,7 @@ func launchTUI() {
 		os.Exit(1)
 	}
 
-	// Check if there are any projects
-	if len(cfg.Projects) == 0 {
-		fmt.Println("No projects configured.")
-		fmt.Println("Run 'wt config init' to create a config file, then 'wt config add <name> <path>' to add projects.")
-		os.Exit(0)
-	}
-
-	// Create and run TUI
+	// Create and run TUI (even if no projects - user can add them with 'a' key)
 	model := tui.NewModel(cfg.Projects)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 

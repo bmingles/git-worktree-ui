@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -13,18 +14,23 @@ import (
 
 // Model represents the TUI state for worktree navigation.
 type Model struct {
-	selectedIndex    int                           // Index of currently selected item (across all projects+worktrees)
-	projects         []config.Project              // List of projects from config
-	worktrees        map[string][]worktree.Worktree // Map of project path to its worktrees
-	items            []Item                        // Flattened list of items for navigation
-	err              error                         // Error state
-	quitting         bool                          // True when user requests quit
-	inputMode        bool                          // True when in input mode (creating worktree)
-	textInput        textinput.Model               // Text input for branch name
-	inputProject     string                        // Project path for the worktree being created
-	confirmMode      bool                          // True when in confirmation mode (deleting worktree)
-	confirmWorktree  *worktree.Worktree            // Worktree to be deleted (pending confirmation)
-	confirmProject   string                        // Project path for the worktree being deleted
+	selectedIndex      int                            // Index of currently selected item (across all projects+worktrees)
+	projects           []config.Project               // List of projects from config
+	worktrees          map[string][]worktree.Worktree // Map of project path to its worktrees
+	items              []Item                         // Flattened list of items for navigation
+	err                error                          // Error state
+	quitting           bool                           // True when user requests quit
+	inputMode          bool                           // True when in input mode (creating worktree)
+	textInput          textinput.Model                // Text input for branch name
+	inputProject       string                         // Project path for the worktree being created
+	confirmMode        bool                           // True when in confirmation mode (deleting worktree)
+	confirmWorktree    *worktree.Worktree             // Worktree to be deleted (pending confirmation)
+	confirmProject     string                         // Project path for the worktree being deleted
+	addProjectMode     bool                           // True when in add project mode
+	addProjectStep     int                            // Step in add project flow (0=name, 1=path)
+	projectNameInput   textinput.Model                // Text input for project name
+	projectPathInput   textinput.Model                // Text input for project path
+	pendingProjectName string                         // Project name while collecting path
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -51,13 +57,25 @@ func NewModel(projects []config.Project) Model {
 	ti.CharLimit = 100
 	ti.Width = 50
 	
+	nameInput := textinput.New()
+	nameInput.Placeholder = "My Project"
+	nameInput.CharLimit = 100
+	nameInput.Width = 50
+	
+	pathInput := textinput.New()
+	pathInput.Placeholder = "/path/to/project"
+	pathInput.CharLimit = 200
+	pathInput.Width = 50
+	
 	m := Model{
-		selectedIndex: 0,
-		projects:      projects,
-		worktrees:     make(map[string][]worktree.Worktree),
-		items:         []Item{},
-		inputMode:     false,
-		textInput:     ti,
+		selectedIndex:    0,
+		projects:         projects,
+		worktrees:        make(map[string][]worktree.Worktree),
+		items:            []Item{},
+		inputMode:        false,
+		textInput:        ti,
+		projectNameInput: nameInput,
+		projectPathInput: pathInput,
 	}
 	
 	// Build initial items list and load worktrees
@@ -74,6 +92,71 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles messages and updates the model (bubbletea.Model interface).
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// If in add project mode, handle project name/path input
+	if m.addProjectMode {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				if m.addProjectStep == 0 {
+					// Move from name to path
+					name := m.projectNameInput.Value()
+					if name != "" {
+						m.pendingProjectName = name
+						m.addProjectStep = 1
+						m.projectPathInput.Focus()
+						m.projectNameInput.Blur()
+						return m, nil
+					}
+					// Empty name, cancel
+					m.addProjectMode = false
+					m.addProjectStep = 0
+					m.projectNameInput.Reset()
+					m.projectPathInput.Reset()
+					m.pendingProjectName = ""
+					return m, nil
+				} else {
+					// Submit the project
+					path := m.projectPathInput.Value()
+					if path != "" {
+						name := m.pendingProjectName
+						m.addProjectMode = false
+						m.addProjectStep = 0
+						m.projectNameInput.Reset()
+						m.projectPathInput.Reset()
+						m.pendingProjectName = ""
+						return m, m.addProject(name, path)
+					}
+					// Empty path, cancel
+					m.addProjectMode = false
+					m.addProjectStep = 0
+					m.projectNameInput.Reset()
+					m.projectPathInput.Reset()
+					m.pendingProjectName = ""
+					return m, nil
+				}
+			case "esc", "ctrl+c":
+				// Cancel add project mode
+				m.addProjectMode = false
+				m.addProjectStep = 0
+				m.projectNameInput.Reset()
+				m.projectPathInput.Reset()
+				m.pendingProjectName = ""
+				return m, nil
+			default:
+				// Update the appropriate text input
+				var cmd tea.Cmd
+				if m.addProjectStep == 0 {
+					m.projectNameInput, cmd = m.projectNameInput.Update(msg)
+				} else {
+					m.projectPathInput, cmd = m.projectPathInput.Update(msg)
+				}
+				return m, cmd
+			}
+		}
+		return m, nil
+	}
+	
 	// If in confirmation mode, handle y/n input
 	if m.confirmMode {
 		switch msg := msg.(type) {
@@ -149,6 +232,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case vsCodeErrorMsg:
 		m.err = msg.err
 		return m, nil
+	case projectAddedMsg:
+		// Reload config to get the new project list
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			m.err = err
+			return m, nil
+		}
+		m.projects = cfg.Projects
+		m.buildItems()
+		m.loadWorktrees()
+		
+		// Find and select the newly added project
+		for i, item := range m.items {
+			if item.Type == ItemTypeProject && item.ProjectPath == msg.projectPath {
+				m.selectedIndex = i
+				m.buildItems() // Rebuild to expand the selected project
+				break
+			}
+		}
+		return m, nil
 	}
 	
 	return m, nil
@@ -164,15 +267,44 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "up", "k":
 		if m.selectedIndex > 0 {
 			m.selectedIndex--
+			m.buildItems() // Rebuild to update expansion
 		}
 		
 	case "down", "j":
 		if m.selectedIndex < len(m.items)-1 {
 			m.selectedIndex++
+			m.buildItems() // Rebuild to update expansion
 		}
 		
 	case "enter", "o":
-		return m, m.openInVSCode()
+		// Handle Enter key based on item type
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			switch item.Type {
+			case ItemTypeProject:
+				// Project selection handled by buildItems automatically
+				return m, nil
+			case ItemTypeWorktree:
+				// Open worktree in VS Code
+				return m, m.openInVSCode()
+			}
+		}
+		return m, nil
+		
+	case " ":
+		// Space does nothing now - expansion is automatic
+		return m, nil
+		
+	case "a":
+		// Trigger add project mode
+		m.addProjectMode = true
+		m.addProjectStep = 0
+		m.projectNameInput.Reset()
+		m.projectPathInput.Reset()
+		m.projectNameInput.Focus()
+		m.pendingProjectName = ""
+		m.err = nil
+		return m, nil
 		
 	case "c":
 		// Enter create mode
@@ -209,6 +341,17 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 // buildItems creates a flattened list of items for navigation.
 func (m *Model) buildItems() {
+	// Determine which project should be expanded (the one containing the selected item)
+	selectedProjectPath := ""
+	if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+		selectedItem := m.items[m.selectedIndex]
+		selectedProjectPath = selectedItem.ProjectPath
+	} else if len(m.projects) > 0 {
+		// If no selection yet, expand first project
+		selectedProjectPath = m.projects[0].Path
+	}
+	
+	oldItemsCount := len(m.items)
 	m.items = []Item{}
 	
 	for _, project := range m.projects {
@@ -219,16 +362,31 @@ func (m *Model) buildItems() {
 			ProjectPath: project.Path,
 		})
 		
-		// Add worktrees for this project
-		if wts, ok := m.worktrees[project.Path]; ok {
-			for i := range wts {
-				m.items = append(m.items, Item{
-					Type:        ItemTypeWorktree,
-					ProjectName: project.Name,
-					ProjectPath: project.Path,
-					Worktree:    &wts[i],
-				})
+		// Add worktrees for this project only if it's the selected project
+		if project.Path == selectedProjectPath {
+			if wts, ok := m.worktrees[project.Path]; ok {
+				for i := range wts {
+					m.items = append(m.items, Item{
+						Type:        ItemTypeWorktree,
+						ProjectName: project.Name,
+						ProjectPath: project.Path,
+						Worktree:    &wts[i],
+					})
+				}
 			}
+		}
+	}
+	
+	// Ensure selectedIndex is still valid after rebuild
+	if m.selectedIndex >= len(m.items) && len(m.items) > 0 {
+		m.selectedIndex = len(m.items) - 1
+	}
+	
+	// If items count changed significantly, might need to adjust selection
+	if oldItemsCount > 0 && len(m.items) > 0 && m.selectedIndex >= 0 {
+		// Keep selection roughly in the same area
+		if m.selectedIndex >= len(m.items) {
+			m.selectedIndex = len(m.items) - 1
 		}
 	}
 }
@@ -281,6 +439,11 @@ type worktreeDeletedMsg struct {
 // worktreeErrorMsg is sent when a worktree operation fails.
 type worktreeErrorMsg struct {
 	err error
+}
+
+// projectAddedMsg is sent when a project is successfully added.
+type projectAddedMsg struct {
+	projectPath string
 }
 
 // openInVSCode opens the selected worktree in VS Code.
@@ -353,5 +516,47 @@ func (m Model) deleteWorktree(projectPath, worktreePath string) tea.Cmd {
 		}
 		
 		return worktreeDeletedMsg{projectPath: projectPath}
+	}
+}
+
+// addProject adds a new project to the config.
+func (m Model) addProject(name, path string) tea.Cmd {
+	return func() tea.Msg {
+		// Make path absolute
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("invalid path: %w", err)}
+		}
+		
+		// Check if path exists
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			return worktreeErrorMsg{err: fmt.Errorf("path does not exist: %s", absPath)}
+		}
+		
+		// Load existing config
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to load config: %w", err)}
+		}
+		
+		// Check if project with this name already exists
+		for _, p := range cfg.Projects {
+			if p.Name == name {
+				return worktreeErrorMsg{err: fmt.Errorf("project '%s' already exists", name)}
+			}
+		}
+		
+		// Add new project
+		cfg.Projects = append(cfg.Projects, config.Project{
+			Name: name,
+			Path: absPath,
+		})
+		
+		// Save config
+		if err := config.SaveConfig(cfg); err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to save config: %w", err)}
+		}
+		
+		return projectAddedMsg{projectPath: absPath}
 	}
 }
