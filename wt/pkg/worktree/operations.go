@@ -10,6 +10,8 @@ import (
 
 // CreateWorktree creates a new Git worktree at the specified path with the given branch name.
 // It executes 'git worktree add <worktreePath> -b <branchName>' from the project directory.
+// If worktreePath is empty, defaults to projectPath/../projectName.worktrees/branchName.
+// Relative paths are resolved relative to the project directory.
 // Returns an error if the branch already exists, the path is invalid, or the command fails.
 func CreateWorktree(projectPath, branchName, worktreePath string) error {
 	if projectPath == "" {
@@ -18,8 +20,17 @@ func CreateWorktree(projectPath, branchName, worktreePath string) error {
 	if branchName == "" {
 		return errors.New("branchName cannot be empty")
 	}
+
+	// If worktreePath is empty, use default convention
 	if worktreePath == "" {
-		return errors.New("worktreePath cannot be empty")
+		projectName := filepath.Base(projectPath)
+		worktreesDir := filepath.Join(filepath.Dir(projectPath), projectName+".worktrees")
+		worktreePath = filepath.Join(worktreesDir, branchName)
+	} else {
+		// If worktreePath is relative, resolve it relative to project directory
+		if !filepath.IsAbs(worktreePath) {
+			worktreePath = filepath.Join(projectPath, worktreePath)
+		}
 	}
 
 	// Clean the worktree path

@@ -75,7 +75,7 @@
     {
       "id": "task-15",
       "description": "Worktree creation in CreateWorktree hardcodes destination path. Add ability to specify destination directory while defaulting to current convention (.worktrees/branch-name relative to project root). Update TUI to allow optional path specification during worktree creation",
-      "status": "todo"
+      "status": "completed"
     }
   ]
 }

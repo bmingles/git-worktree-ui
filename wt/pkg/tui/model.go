@@ -22,7 +22,10 @@ type Model struct {
 	err                error                          // Error state
 	quitting           bool                           // True when user requests quit
 	inputMode          bool                           // True when in input mode (creating worktree)
+	inputStep          int                            // Step in create worktree flow (0=branch name, 1=path)
 	textInput          textinput.Model                // Text input for branch name
+	pathInput          textinput.Model                // Text input for optional destination path
+	pendingBranchName  string                         // Branch name while collecting path
 	inputProject       string                         // Project path for the worktree being created
 	confirmMode        bool                           // True when in confirmation mode (deleting worktree)
 	confirmWorktree    *worktree.Worktree             // Worktree to be deleted (pending confirmation)
@@ -63,15 +66,20 @@ func NewModel(projects []config.Project) Model {
 	ti.CharLimit = 100
 	ti.Width = 50
 	
+	worktreePathInput := textinput.New()
+	worktreePathInput.Placeholder = "path/to/worktree"
+	worktreePathInput.CharLimit = 200
+	worktreePathInput.Width = 70
+	
 	nameInput := textinput.New()
 	nameInput.Placeholder = "My Project"
 	nameInput.CharLimit = 100
 	nameInput.Width = 50
 	
-	pathInput := textinput.New()
-	pathInput.Placeholder = "/path/to/project"
-	pathInput.CharLimit = 200
-	pathInput.Width = 50
+	projectPathInput := textinput.New()
+	projectPathInput.Placeholder = "/path/to/project"
+	projectPathInput.CharLimit = 200
+	projectPathInput.Width = 50
 	
 	m := Model{
 		selectedIndex:    0,
@@ -79,9 +87,11 @@ func NewModel(projects []config.Project) Model {
 		worktrees:        make(map[string][]worktree.Worktree),
 		items:            []Item{},
 		inputMode:        false,
+		inputStep:        0,
 		textInput:        ti,
+		pathInput:        worktreePathInput,
 		projectNameInput: nameInput,
-		projectPathInput: pathInput,
+		projectPathInput: projectPathInput,
 		expandedProjects: make(map[string]bool),
 		width:            80,  // Default width
 		height:           24,  // Default height
@@ -246,29 +256,63 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyMsg:
 			switch msg.String() {
 			case "enter":
-				// Create the worktree
-				branchName := m.textInput.Value()
-				if branchName != "" {
+				if m.inputStep == 0 {
+					// Move from branch name to path input
+					branchName := m.textInput.Value()
+					if branchName != "" {
+						m.pendingBranchName = branchName
+						m.inputStep = 1
+						// Pre-populate with default path (sibling directory)
+						projectName := filepath.Base(m.inputProject)
+						defaultPath := filepath.Join("..", projectName+".worktrees", branchName)
+						m.pathInput.SetValue(defaultPath)
+						m.pathInput.Focus()
+						m.textInput.Blur()
+						return m, nil
+					}
+					// Empty branch name, cancel
 					m.inputMode = false
-					return m, m.createWorktree(m.inputProject, branchName)
+					m.inputStep = 0
+					m.textInput.Reset()
+					m.pathInput.Reset()
+					m.pendingBranchName = ""
+					return m, nil
+				} else {
+					// Create the worktree with optional path
+					branchName := m.pendingBranchName
+					customPath := m.pathInput.Value()
+					m.inputMode = false
+					m.inputStep = 0
+					m.textInput.Reset()
+					m.pathInput.Reset()
+					m.pendingBranchName = ""
+					return m, m.createWorktree(m.inputProject, branchName, customPath)
 				}
-				m.inputMode = false
-				m.textInput.Reset()
-				return m, nil
 			case "esc", "ctrl+c":
 				// Cancel input mode
 				m.inputMode = false
+				m.inputStep = 0
 				m.textInput.Reset()
+				m.pathInput.Reset()
+				m.pendingBranchName = ""
 				return m, nil
 			default:
-				// Update textinput
+				// Update the appropriate textinput based on step
 				var cmd tea.Cmd
-				m.textInput, cmd = m.textInput.Update(msg)
+				if m.inputStep == 0 {
+					m.textInput, cmd = m.textInput.Update(msg)
+				} else {
+					m.pathInput, cmd = m.pathInput.Update(msg)
+				}
 				return m, cmd
 			}
 		}
 		var cmd tea.Cmd
-		m.textInput, cmd = m.textInput.Update(msg)
+		if m.inputStep == 0 {
+			m.textInput, cmd = m.textInput.Update(msg)
+		} else {
+			m.pathInput, cmd = m.pathInput.Update(msg)
+		}
 		return m, cmd
 	}
 	
@@ -414,9 +458,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
 			item := m.items[m.selectedIndex]
 			m.inputMode = true
+			m.inputStep = 0
 			m.inputProject = item.ProjectPath
 			m.textInput.Reset()
 			m.textInput.Focus()
+			m.pathInput.Reset()
+			m.pathInput.Blur()
+			m.pendingBranchName = ""
 			m.err = nil // Clear any previous errors
 		}
 		
@@ -570,14 +618,10 @@ func (m Model) openInVSCode() tea.Cmd {
 }
 
 // createWorktree creates a new worktree for the given project.
-func (m Model) createWorktree(projectPath, branchName string) tea.Cmd {
+// If customPath is empty, defaults to projectPath/../projectName.worktrees/branchName.
+func (m Model) createWorktree(projectPath, branchName, customPath string) tea.Cmd {
 	return func() tea.Msg {
-		// Calculate worktree path: projectPath/../projectName.worktrees/branchName
-		projectName := filepath.Base(projectPath)
-		worktreesDir := filepath.Join(filepath.Dir(projectPath), projectName+".worktrees")
-		worktreePath := filepath.Join(worktreesDir, branchName)
-		
-		err := worktree.CreateWorktree(projectPath, branchName, worktreePath)
+		err := worktree.CreateWorktree(projectPath, branchName, customPath)
 		if err != nil {
 			return worktreeErrorMsg{err: err}
 		}

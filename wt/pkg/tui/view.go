@@ -139,10 +139,19 @@ func (m Model) View() string {
 	if m.inputMode {
 		b.WriteString(helpStyle.Render("Create Worktree"))
 		b.WriteString("\n\n")
-		b.WriteString(helpStyle.Render("Branch name: "))
-		b.WriteString(m.textInput.View())
-		b.WriteString("\n\n")
-		b.WriteString(helpStyle.Render("Press Enter to create • Esc to cancel"))
+		if m.inputStep == 0 {
+			b.WriteString(helpStyle.Render("Branch name: "))
+			b.WriteString(m.textInput.View())
+			b.WriteString("\n\n")
+			b.WriteString(helpStyle.Render("Press Enter to continue • Esc to cancel"))
+		} else {
+			b.WriteString(helpStyle.Render(fmt.Sprintf("Branch: %s", m.pendingBranchName)))
+			b.WriteString("\n\n")
+			b.WriteString(helpStyle.Render("Destination path: "))
+			b.WriteString(m.pathInput.View())
+			b.WriteString("\n\n")
+			b.WriteString(helpStyle.Render("Press Enter to create • Esc to cancel"))
+		}
 		content := boxStyle.Width(contentWidth).Render(b.String())
 		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 	}
