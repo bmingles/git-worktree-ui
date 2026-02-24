@@ -594,6 +594,14 @@ func (m Model) addProject(name, path string) tea.Cmd {
 			}
 		}
 		
+		// Check if project with this path already exists
+		for _, p := range cfg.Projects {
+			existingAbsPath, err := filepath.Abs(p.Path)
+			if err == nil && existingAbsPath == absPath {
+				return worktreeErrorMsg{err: fmt.Errorf("project path '%s' already exists", absPath)}
+			}
+		}
+		
 		// Add new project
 		cfg.Projects = append(cfg.Projects, config.Project{
 			Name: name,
