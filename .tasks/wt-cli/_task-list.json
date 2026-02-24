@@ -76,6 +76,16 @@
       "id": "task-15",
       "description": "Worktree creation in CreateWorktree hardcodes destination path. Add ability to specify destination directory while defaulting to current convention (.worktrees/branch-name relative to project root). Update TUI to allow optional path specification during worktree creation",
       "status": "completed"
+    },
+    {
+      "id": "task-16",
+      "description": "Add category support to CLI and config: Projects currently have name, path, and tags fields. Add 'category' field to Project struct in pkg/config/config.go. Config struct should have 'categories' []string field that defines both available categories and their display order. Update example-config.yaml to show category examples. Add CLI commands: 'wt config category list' (show categories in configured order), 'wt config category set <project-name> <category>' (assign category to project), 'wt config category add <category>' (add category to config.categories list). Category is optional - projects without category field should still work. See existing tag commands in cmd/config.go as reference pattern.",
+      "status": "todo"
+    },
+    {
+      "id": "task-17",
+      "description": "Add search/filter feature to TUI: Currently TUI (pkg/tui/) displays all projects and worktrees. Add '/' key to activate search mode with text input at bottom of screen. Filter projects by matching search term against project name, tags, or category (case-insensitive substring match). Display filtered results in main view. While typing in search box: all keypresses (including shortcuts) are captured as text input, up/down arrows navigate filtered items. Press Enter to EXIT search input mode while KEEPING filter applied (enables shortcuts on filtered results). Press Esc from search input to clear filter and exit search mode. When filter is active but not in search input mode: shortcuts work normally on filtered items, Esc clears the filter. When no filter active: Esc quits app. Keyboard navigation (up/down) only moves through visible filtered items. When filter changes, keep selection if item still visible, otherwise reset to first. Model struct needs: searchMode bool, filterActive bool, searchInput textinput.Model, filterTerm string. Update buildItems() to respect active filter.",
+      "status": "todo"
     }
   ]
 }

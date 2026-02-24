@@ -1,0 +1,36 @@
+{
+  "id": "task-17",
+  "description": "Add search/filter feature to TUI: Currently TUI (pkg/tui/) displays all projects and worktrees. Add '/' key to activate search mode with text input at bottom of screen. Filter projects by matching search term against project name, tags, or category (case-insensitive substring match). Display filtered results in main view. While typing in search box: all keypresses (including shortcuts) are captured as text input, up/down arrows navigate filtered items. Press Enter to EXIT search input mode while KEEPING filter applied (enables shortcuts on filtered results). Press Esc from search input to clear filter and exit search mode. When filter is active but not in search input mode: shortcuts work normally on filtered items, Esc clears the filter. When no filter active: Esc quits app. Keyboard navigation (up/down) only moves through visible filtered items. When filter changes, keep selection if item still visible, otherwise reset to first. Model struct needs: searchMode bool, filterActive bool, searchInput textinput.Model, filterTerm string. Update buildItems() to respect active filter.",
+  "status": "todo",
+  "created": "2026-02-24T22:45:53",
+  "updated": "2026-02-24T23:15:46",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/tui/model.go",
+      "wt/pkg/tui/view.go",
+      "wt/pkg/config/config.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Pressing '/' activates search input mode with text box at bottom",
+    "Search filters projects by name, tags, or category (case-insensitive) as user types",
+    "Main view shows only filtered projects and their worktrees",
+    "Pressing Enter while in search input: exits input mode, keeps filter applied, enables shortcuts",
+    "Pressing Esc while in search input: clears filter and exits search mode",
+    "When filter is active (not in input mode): shortcuts (a,n,d,o) work on filtered items",
+    "When filter is active (not in input mode): Esc clears filter and shows all projects",
+    "When no filter active: Esc quits app (existing behavior)",
+    "Up/down arrow navigation only moves through visible filtered items",
+    "Selection persists if current item still visible after filter change, otherwise resets to first",
+    "Search input box displays at bottom with clear visual indicator",
+    "Help text shows '/: search' when no filter, 'esc: clear filter' when filter active"
+  ],
+  "verification": null,
+  "depends_on": [
+    "task-16"
+  ],
+  "claimed_by": null
+}
