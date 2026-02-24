@@ -301,17 +301,138 @@ var configTagListCmd = &cobra.Command{
 	},
 }
 
+// configCategoryCmd manages categories for projects
+var configCategoryCmd = &cobra.Command{
+	Use:   "category",
+	Short: "Manage project categories",
+	Long:  `Add, set, or list categories for projects.`,
+}
+
+// configCategoryListCmd lists all configured categories in order
+var configCategoryListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List categories",
+	Long:  `List all configured categories in their defined order.`,
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Set custom config path if provided
+		if cfgFile != "" {
+			config.SetConfigPath(cfgFile)
+		}
+
+		// Load config
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+			os.Exit(1)
+		}
+
+		if len(cfg.Categories) == 0 {
+			fmt.Println("No categories configured.")
+			fmt.Println("Use 'wt config category add <category>' to add a category.")
+		} else {
+			fmt.Println("Configured categories:")
+			for i, cat := range cfg.Categories {
+				fmt.Printf("  %d. %s\n", i+1, cat)
+			}
+		}
+	},
+}
+
+// configCategorySetCmd sets the category for a project
+var configCategorySetCmd = &cobra.Command{
+	Use:   "set <project-name> <category>",
+	Short: "Set category for a project",
+	Long:  `Set the category for an existing project.`,
+	Args:  cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		projectName := args[0]
+		category := args[1]
+
+		// Set custom config path if provided
+		if cfgFile != "" {
+			config.SetConfigPath(cfgFile)
+		}
+
+		// Load config
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Find project
+		project, err := cfg.FindProject(projectName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Set category
+		project.SetCategory(category)
+
+		// Save config
+		if err := config.SaveConfig(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving config: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Set category '%s' for project '%s'\n", category, projectName)
+	},
+}
+
+// configCategoryAddCmd adds a category to the config
+var configCategoryAddCmd = &cobra.Command{
+	Use:   "add <category>",
+	Short: "Add a category to the config",
+	Long:  `Add a new category to the configuration's categories list.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		category := args[0]
+
+		// Set custom config path if provided
+		if cfgFile != "" {
+			config.SetConfigPath(cfgFile)
+		}
+
+		// Load config
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Add category
+		if cfg.AddCategory(category) {
+			// Save config
+			if err := config.SaveConfig(cfg); err != nil {
+				fmt.Fprintf(os.Stderr, "Error saving config: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Printf("Added category '%s'\n", category)
+		} else {
+			fmt.Printf("Category '%s' already exists\n", category)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configInitCmd)
 	configCmd.AddCommand(configAddCmd)
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configTagCmd)
+	configCmd.AddCommand(configCategoryCmd)
 	
 	// Add tag subcommands
 	configTagCmd.AddCommand(configTagAddCmd)
 	configTagCmd.AddCommand(configTagRemoveCmd)
 	configTagCmd.AddCommand(configTagListCmd)
+	
+	// Add category subcommands
+	configCategoryCmd.AddCommand(configCategoryListCmd)
+	configCategoryCmd.AddCommand(configCategorySetCmd)
+	configCategoryCmd.AddCommand(configCategoryAddCmd)
 	
 	// Add flags
 	configAddCmd.Flags().StringSliceVarP(&addTags, "tags", "t", []string{}, "Tags for the project (comma-separated)")

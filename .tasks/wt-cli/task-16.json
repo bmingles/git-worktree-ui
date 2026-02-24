@@ -1,10 +1,10 @@
 {
   "id": "task-16",
   "description": "Add category support to CLI and config: Projects currently have name, path, and tags fields. Add 'category' field to Project struct in pkg/config/config.go. Config struct should have 'categories' []string field that defines both available categories and their display order. Update example-config.yaml to show category examples. Add CLI commands: 'wt config category list' (show categories in configured order), 'wt config category set <project-name> <category>' (assign category to project), 'wt config category add <category>' (add category to config.categories list). Category is optional - projects without category field should still work. See existing tag commands in cmd/config.go as reference pattern.",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-24T22:45:44",
-  "updated": "2026-02-24T22:48:55",
-  "note": null,
+  "updated": "2026-02-24T23:22:22",
+  "note": "Successfully implemented category support. Added Category field to Project struct, Categories field to Config struct, implemented all CLI commands (category list/set/add), updated example-config.yaml with examples, and verified backward compatibility with projects without categories. All tests pass.",
   "context": {
     "files": [
       "wt/pkg/config/config.go",
@@ -25,5 +25,5 @@
   ],
   "verification": null,
   "depends_on": [],
-  "claimed_by": null
+  "claimed_by": "agent-copilot-1771975104"
 }

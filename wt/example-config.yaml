@@ -9,19 +9,29 @@
 #   3. Run 'wt' to launch the TUI
 #
 # Or use the CLI commands:
-#   wt config init                     # Create default config file
-#   wt config add <name> <path>        # Add a project
+#   wt config init                          # Create default config file
+#   wt config add <name> <path>             # Add a project
 #   wt config add <name> <path> --tags tag1,tag2  # Add a project with tags
-#   wt config list                     # List configured projects
-#   wt config list --tag <tag>         # Filter projects by tag
-#   wt config tag add <name> <tag>     # Add tags to a project
-#   wt config tag remove <name> <tag>  # Remove tags from a project
-#   wt config tag list                 # List all tags
+#   wt config list                          # List configured projects
+#   wt config list --tag <tag>              # Filter projects by tag
+#   wt config tag add <name> <tag>          # Add tags to a project
+#   wt config tag remove <name> <tag>       # Remove tags from a project
+#   wt config tag list                      # List all tags
+#   wt config category list                 # List all categories in order
+#   wt config category set <name> <cat>     # Set category for a project
+#   wt config category add <category>       # Add a category to config
+
+# Define available categories and their display order (optional)
+categories:
+  - personal
+  - work
+  - opensource
 
 projects:
   # Dashboard application
   - name: dashboard
     path: /Users/username/code/vscode-dashboard
+    category: work
     tags:
       - frontend
       - typescript
@@ -30,6 +40,7 @@ projects:
   # Backend API service
   - name: api-service
     path: /Users/username/code/my-api
+    category: work
     tags:
       - backend
       - go
@@ -38,6 +49,7 @@ projects:
   # Frontend web application
   - name: frontend
     path: /Users/username/projects/web-frontend
+    category: personal
     tags:
       - frontend
       - react
@@ -47,6 +59,8 @@ projects:
 # - 'name' must be unique for each project
 # - 'path' should be an absolute path to a Git repository
 # - 'tags' is an optional list of labels to organize your projects
+# - 'category' is an optional label to group projects (does not need to be in categories list)
+# - 'categories' defines available categories and their display order
 # - The path must exist and be a valid Git repository with worktree support
 # - You can add as many projects as needed
 # - Tags can be used to filter and organize projects (e.g., work, personal, frontend, backend)

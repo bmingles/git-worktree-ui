@@ -10,14 +10,16 @@ import (
 
 // Project represents a worktree project configuration
 type Project struct {
-	Name string   `yaml:"name"`
-	Path string   `yaml:"path"`
-	Tags []string `yaml:"tags,omitempty"`
+	Name     string   `yaml:"name"`
+	Path     string   `yaml:"path"`
+	Tags     []string `yaml:"tags,omitempty"`
+	Category string   `yaml:"category,omitempty"`
 }
 
 // Config represents the application configuration
 type Config struct {
-	Projects []Project `yaml:"projects"`
+	Projects   []Project `yaml:"projects"`
+	Categories []string  `yaml:"categories,omitempty"`
 }
 
 // customConfigPath holds the custom config path if set via --config flag
@@ -211,4 +213,21 @@ func (c *Config) FilterProjectsByTag(tag string) []Project {
 		}
 	}
 	return filtered
+}
+
+// AddCategory adds a category to the config's categories list if it doesn't already exist
+func (c *Config) AddCategory(category string) bool {
+	// Check if category already exists
+	for _, cat := range c.Categories {
+		if cat == category {
+			return false
+		}
+	}
+	c.Categories = append(c.Categories, category)
+	return true
+}
+
+// SetProjectCategory sets the category for a project
+func (p *Project) SetCategory(category string) {
+	p.Category = category
 }
