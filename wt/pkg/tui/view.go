@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -53,6 +54,10 @@ var (
 			PaddingTop(1).
 			PaddingLeft(2)
 
+	selectedSuggestionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Bold(true)
+
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF0000")).
 			Bold(true).
@@ -91,7 +96,31 @@ func (m Model) View() string {
 			b.WriteString("\n\n")
 			b.WriteString(helpStyle.Render("Project path: "))
 			b.WriteString(m.projectPathInput.View())
-			b.WriteString("\n\n")
+			b.WriteString("\n")
+			
+			// Show path suggestions in wrapped format
+			if len(m.pathSuggestions) > 0 {
+				b.WriteString("\n")
+				var parts []string
+				for i, suggestion := range m.pathSuggestions {
+					// Show just the basename for cleaner display
+					display := filepath.Base(suggestion)
+					if suggestion[len(suggestion)-1] == filepath.Separator {
+						display += "/"
+					}
+					if i == m.selectedSuggestion {
+						// White and bold for selected
+						parts = append(parts, "\033[1;37m"+display+"\033[0m")
+					} else {
+						// Gray for unselected
+						parts = append(parts, "\033[38;5;244m"+display+"\033[0m")
+					}
+				}
+				b.WriteString(strings.Join(parts, "  "))
+				b.WriteString("\n")
+			}
+			
+			b.WriteString("\n")
 			b.WriteString(helpStyle.Render("Press Enter to add • Esc to cancel"))
 		}
 		return boxStyle.Render(b.String())

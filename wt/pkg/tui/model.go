@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -31,6 +32,8 @@ type Model struct {
 	projectNameInput   textinput.Model                // Text input for project name
 	projectPathInput   textinput.Model                // Text input for project path
 	pendingProjectName string                         // Project name while collecting path
+	pathSuggestions    []string                       // Path autocompletion suggestions
+	selectedSuggestion int                            // Index of selected suggestion
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -142,7 +145,49 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.projectNameInput.Reset()
 				m.projectPathInput.Reset()
 				m.pendingProjectName = ""
+				m.pathSuggestions = nil
+				m.selectedSuggestion = 0
 				return m, nil
+			case "tab":
+				// Handle tab completion for path input
+				if m.addProjectStep == 1 {
+					input := m.projectPathInput.Value()
+					
+					// Generate suggestions if we don't have any
+					if len(m.pathSuggestions) == 0 {
+						m.pathSuggestions = getPathSuggestions(input)
+						m.selectedSuggestion = 0
+						
+						// Show first suggestion or complete if only one
+						if len(m.pathSuggestions) == 1 {
+							// Only one match - auto-complete it
+							m.projectPathInput.SetValue(m.pathSuggestions[0])
+							m.projectPathInput.SetCursor(len(m.pathSuggestions[0]))
+							m.pathSuggestions = nil // Clear after completing
+						} else if len(m.pathSuggestions) > 1 {
+							// Multiple matches - show first one
+							m.projectPathInput.SetValue(m.pathSuggestions[0])
+							m.projectPathInput.SetCursor(len(m.pathSuggestions[0]))
+						}
+					} else if len(m.pathSuggestions) > 1 {
+						// Suggestions already showing - cycle to next
+						m.selectedSuggestion = (m.selectedSuggestion + 1) % len(m.pathSuggestions)
+						m.projectPathInput.SetValue(m.pathSuggestions[m.selectedSuggestion])
+						m.projectPathInput.SetCursor(len(m.pathSuggestions[m.selectedSuggestion]))
+					}
+					return m, nil
+				}
+			case "shift+tab":
+				// Cycle backwards through suggestions
+				if m.addProjectStep == 1 && len(m.pathSuggestions) > 1 {
+					m.selectedSuggestion--
+					if m.selectedSuggestion < 0 {
+						m.selectedSuggestion = len(m.pathSuggestions) - 1
+					}
+					m.projectPathInput.SetValue(m.pathSuggestions[m.selectedSuggestion])
+					m.projectPathInput.SetCursor(len(m.pathSuggestions[m.selectedSuggestion]))
+					return m, nil
+				}
 			default:
 				// Update the appropriate text input
 				var cmd tea.Cmd
@@ -150,6 +195,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.projectNameInput, cmd = m.projectNameInput.Update(msg)
 				} else {
 					m.projectPathInput, cmd = m.projectPathInput.Update(msg)
+					// Clear suggestions when user types (they'll reappear on Tab)
+					m.pathSuggestions = nil
+					m.selectedSuggestion = 0
 				}
 				return m, cmd
 			}
@@ -559,4 +607,66 @@ func (m Model) addProject(name, path string) tea.Cmd {
 		
 		return projectAddedMsg{projectPath: absPath}
 	}
+}
+
+// getPathSuggestions returns filesystem path suggestions for the given input.
+func getPathSuggestions(input string) []string {
+	if input == "" {
+		input = "."
+	}
+	
+	// Expand ~ to home directory
+	if strings.HasPrefix(input, "~") {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			input = filepath.Join(home, input[1:])
+		}
+	}
+	
+	// Get the directory to search and the prefix to match
+	dir := filepath.Dir(input)
+	prefix := filepath.Base(input)
+	
+	// If input ends with /, we're completing within that directory
+	if strings.HasSuffix(input, string(filepath.Separator)) {
+		dir = input
+		prefix = ""
+	}
+	
+	// Read directory entries
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	
+	var suggestions []string
+	for _, entry := range entries {
+		name := entry.Name()
+		
+		// Skip hidden files unless prefix starts with .
+		if strings.HasPrefix(name, ".") && !strings.HasPrefix(prefix, ".") {
+			continue
+		}
+		
+		// Check if entry matches prefix
+		if prefix == "" || strings.HasPrefix(name, prefix) {
+			fullPath := filepath.Join(dir, name)
+			
+			// Add trailing slash for directories
+			if entry.IsDir() {
+				fullPath += string(filepath.Separator)
+			}
+			
+			suggestions = append(suggestions, fullPath)
+		}
+	}
+	
+	return suggestions
+}
+
+// updatePathSuggestions refreshes the path suggestions based on current input.
+func (m *Model) updatePathSuggestions() {
+	input := m.projectPathInput.Value()
+	m.pathSuggestions = getPathSuggestions(input)
+	m.selectedSuggestion = 0
 }
