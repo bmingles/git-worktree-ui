@@ -55,7 +55,8 @@ type Item struct {
 	Type        ItemType
 	ProjectName string
 	ProjectPath string
-	Worktree    *worktree.Worktree // nil for project items
+	ProjectTags []string               // Tags for the project
+	Worktree    *worktree.Worktree     // nil for project items
 }
 
 // NewModel creates a new TUI model with the given projects.
@@ -507,6 +508,7 @@ func (m *Model) buildItems() {
 			Type:        ItemTypeProject,
 			ProjectName: project.Name,
 			ProjectPath: project.Path,
+			ProjectTags: project.Tags,
 		})
 		
 		// Add worktrees for this project only if it's expanded
@@ -517,6 +519,7 @@ func (m *Model) buildItems() {
 						Type:        ItemTypeWorktree,
 						ProjectName: project.Name,
 						ProjectPath: project.Path,
+						ProjectTags: project.Tags,
 						Worktree:    &wts[i],
 					})
 				}

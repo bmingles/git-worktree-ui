@@ -1,7 +1,16 @@
 projects:
     - name: Project A
       path: /workspaces/vscode-dashboard/test-ws/project-a
+      tags:
+        - test
+        - frontend
+        - typescript
     - name: Project B
       path: /workspaces/vscode-dashboard/test-ws/project-b
+      tags:
+        - example
     - name: Project C
       path: /workspaces/vscode-dashboard/test-ws/project-c
+      tags:
+        - example
+        - test

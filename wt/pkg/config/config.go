@@ -10,8 +10,9 @@ import (
 
 // Project represents a worktree project configuration
 type Project struct {
-	Name string `yaml:"name"`
-	Path string `yaml:"path"`
+	Name string   `yaml:"name"`
+	Path string   `yaml:"path"`
+	Tags []string `yaml:"tags,omitempty"`
 }
 
 // Config represents the application configuration
@@ -135,4 +136,79 @@ func SaveConfig(config *Config) error {
 	}
 
 	return nil
+}
+
+// FindProject finds a project by name in the config
+func (c *Config) FindProject(name string) (*Project, error) {
+	for i := range c.Projects {
+		if c.Projects[i].Name == name {
+			return &c.Projects[i], nil
+		}
+	}
+	return nil, fmt.Errorf("project '%s' not found", name)
+}
+
+// AddTags adds tags to a project if they don't already exist
+func (p *Project) AddTags(tags ...string) bool {
+	modified := false
+	for _, tag := range tags {
+		// Check if tag already exists
+		exists := false
+		for _, t := range p.Tags {
+			if t == tag {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			p.Tags = append(p.Tags, tag)
+			modified = true
+		}
+	}
+	return modified
+}
+
+// RemoveTags removes tags from a project
+func (p *Project) RemoveTags(tags ...string) bool {
+	modified := false
+	for _, tag := range tags {
+		for i := 0; i < len(p.Tags); i++ {
+			if p.Tags[i] == tag {
+				p.Tags = append(p.Tags[:i], p.Tags[i+1:]...)
+				i--
+				modified = true
+			}
+		}
+	}
+	return modified
+}
+
+// GetAllTags returns all unique tags across all projects
+func (c *Config) GetAllTags() []string {
+	tagSet := make(map[string]bool)
+	for _, p := range c.Projects {
+		for _, tag := range p.Tags {
+			tagSet[tag] = true
+		}
+	}
+	
+	tags := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		tags = append(tags, tag)
+	}
+	return tags
+}
+
+// FilterProjectsByTag returns projects that have the specified tag
+func (c *Config) FilterProjectsByTag(tag string) []Project {
+	var filtered []Project
+	for _, p := range c.Projects {
+		for _, t := range p.Tags {
+			if t == tag {
+				filtered = append(filtered, p)
+				break
+			}
+		}
+	}
+	return filtered
 }

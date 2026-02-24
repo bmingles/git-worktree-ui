@@ -58,6 +58,10 @@ var (
 			Foreground(lipgloss.Color("#FFFFFF")).
 			Bold(true)
 
+	tagStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#9D7CD8")).
+		Bold(false)
+
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF0000")).
 			Bold(true).
@@ -253,7 +257,13 @@ func (m Model) renderProject(item Item, isSelected bool) string {
 		countStr = statusStyle.Render(fmt.Sprintf(" (%d)", count))
 	}
 
-	return style.Render(fmt.Sprintf("%s %s%s", expandIcon, item.ProjectName, countStr))
+	// Format tags
+	tagsStr := ""
+	if len(item.ProjectTags) > 0 {
+		tagsStr = " " + tagStyle.Render("["+strings.Join(item.ProjectTags, ", ")+"]")
+	}
+
+	return style.Render(fmt.Sprintf("%s %s%s%s", expandIcon, item.ProjectName, countStr, tagsStr))
 }
 
 // renderWorktree renders a worktree item with status indicators.
