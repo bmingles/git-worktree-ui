@@ -95,7 +95,7 @@
     {
       "id": "task-19",
       "description": "Add category assignment feature to TUI with [c] keyboard shortcut. Currently projects can have a category field set in config, but there's no TUI interface to assign/change categories. Implement a flow where pressing 'c' when a project is selected shows a text input to enter a category name. If the category doesn't exist in config.Categories, add it automatically using config.AddCategory(). After input, call project.SetCategory() and config.SaveConfig() to persist. Show error messages if save fails.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-20",

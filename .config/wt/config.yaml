@@ -1,24 +1,25 @@
+projects:
+    - name: Project A
+      path: /workspaces/vscode-dashboard/test-ws/project-a
+      tags:
+        - test
+        - frontend
+        - typescript
+      category: test
+    - name: Project B
+      path: /workspaces/vscode-dashboard/test-ws/project-b
+      tags:
+        - example
+      category: test
+    - name: Project C
+      path: /workspaces/vscode-dashboard/test-ws/project-c
+      tags:
+        - example
+        - test
+      category: test
 categories:
     - frontend
     - backend
     - test
     - personal
-projects:
-    - name: Project A
-      path: /workspaces/vscode-dashboard/test-ws/project-a
-      category: frontend
-      tags:
-        - test
-        - frontend
-        - typescript
-    - name: Project B
-      path: /workspaces/vscode-dashboard/test-ws/project-b
-      category: test
-      tags:
-        - example
-    - name: Project C
-      path: /workspaces/vscode-dashboard/test-ws/project-c
-      category: test
-      tags:
-        - example
-        - test
+    - Blah

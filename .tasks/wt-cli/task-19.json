@@ -1,10 +1,10 @@
 {
   "id": "task-19",
   "description": "Add category assignment feature to TUI with [c] keyboard shortcut. Currently projects can have a category field set in config, but there's no TUI interface to assign/change categories. Implement a flow where pressing 'c' when a project is selected shows a text input to enter a category name. If the category doesn't exist in config.Categories, add it automatically using config.AddCategory(). After input, call project.SetCategory() and config.SaveConfig() to persist. Show error messages if save fails.",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-25T14:49:34",
-  "updated": "2026-02-25T14:49:34",
-  "note": null,
+  "updated": "2026-02-25T15:47:04",
+  "note": "Successfully implemented category assignment feature with [c] keyboard shortcut. Added category input mode, updated help text, and integrated with config.AddCategory() and project.SetCategory() as specified.",
   "context": {
     "files": [
       "wt/pkg/tui/model.go",
@@ -28,5 +28,5 @@
     "value": "Manually test: run wt, select a project, press 'c', enter a category name, verify config file is updated with both project.category and categories list if new"
   },
   "depends_on": [],
-  "claimed_by": null
+  "claimed_by": "agent-1772032805"
 }

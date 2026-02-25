@@ -46,6 +46,9 @@ type Model struct {
 	filterActive       bool                           // True when filter is applied (not in search input mode)
 	searchInput        textinput.Model                // Text input for search/filter
 	filterTerm         string                         // Current filter term
+	categoryInputMode  bool                           // True when in category input mode
+	categoryInput      textinput.Model                // Text input for category name
+	categoryProject    string                         // Project path for category assignment
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -95,6 +98,11 @@ func NewModel(projects []config.Project, categories []string) Model {
 	searchInput.CharLimit = 100
 	searchInput.Width = 70
 	
+	categoryInput := textinput.New()
+	categoryInput.Placeholder = "Enter category name"
+	categoryInput.CharLimit = 100
+	categoryInput.Width = 50
+	
 	m := Model{
 		selectedIndex:      0,
 		projects:           projects,
@@ -108,6 +116,7 @@ func NewModel(projects []config.Project, categories []string) Model {
 		projectNameInput:   nameInput,
 		projectPathInput:   projectPathInput,
 		searchInput:        searchInput,
+		categoryInput:      categoryInput,
 		expandedProjects:   make(map[string]bool),
 		expandedCategories: make(map[string]bool),
 		width:              80,  // Default width
@@ -321,6 +330,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	
+	// If in category input mode, handle category input
+	if m.categoryInputMode {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				// Submit the category
+				categoryName := m.categoryInput.Value()
+				if categoryName != "" {
+					projectPath := m.categoryProject
+					m.categoryInputMode = false
+					m.categoryInput.Reset()
+					m.categoryInput.Blur()
+					m.categoryProject = ""
+					return m, m.assignCategory(projectPath, categoryName)
+				}
+				// Empty category name, cancel
+				m.categoryInputMode = false
+				m.categoryInput.Reset()
+				m.categoryInput.Blur()
+				m.categoryProject = ""
+				return m, nil
+			case "esc", "ctrl+c":
+				// Cancel category input mode
+				m.categoryInputMode = false
+				m.categoryInput.Reset()
+				m.categoryInput.Blur()
+				m.categoryProject = ""
+				return m, nil
+			default:
+				// Update category input
+				var cmd tea.Cmd
+				m.categoryInput, cmd = m.categoryInput.Update(msg)
+				return m, cmd
+			}
+		}
+		var cmd tea.Cmd
+		m.categoryInput, cmd = m.categoryInput.Update(msg)
+		return m, cmd
+	}
+	
 	// If in input mode, handle text input updates
 	if m.inputMode {
 		switch msg := msg.(type) {
@@ -428,6 +478,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		
 		// Find and select the newly added project
+		for i, item := range m.items {
+			if item.Type == ItemTypeProject && item.ProjectPath == msg.projectPath {
+				m.selectedIndex = i
+				break
+			}
+		}
+		return m, nil
+	case categoryAssignedMsg:
+		// Reload config to get the updated project categories and categories list
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			m.err = err
+			return m, nil
+		}
+		m.projects = cfg.Projects
+		m.categories = cfg.Categories
+		m.buildItems()
+		
+		// Keep the current project selected
 		for i, item := range m.items {
 			if item.Type == ItemTypeProject && item.ProjectPath == msg.projectPath {
 				m.selectedIndex = i
@@ -608,6 +677,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.confirmWorktree = item.Worktree
 				m.confirmProject = item.ProjectPath
 				m.err = nil // Clear any previous errors
+			}
+		}
+		
+	case "c":
+		// Enter category input mode (only for projects)
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			if item.Type == ItemTypeProject {
+				m.categoryInputMode = true
+				m.categoryProject = item.ProjectPath
+				m.categoryInput.Reset()
+				m.categoryInput.Focus()
+				m.err = nil // Clear any previous errors
+				return m, nil
 			}
 		}
 	}
@@ -951,6 +1034,12 @@ type projectAddedMsg struct {
 	projectPath string
 }
 
+// categoryAssignedMsg is sent when a category is successfully assigned to a project.
+type categoryAssignedMsg struct {
+	projectPath string
+	category    string
+}
+
 // openInVSCode opens the selected item (project or worktree) in VS Code.
 func (m Model) openInVSCode() tea.Cmd {
 	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
@@ -1078,6 +1167,43 @@ func (m Model) addProject(name, path string) tea.Cmd {
 		}
 		
 		return projectAddedMsg{projectPath: absPath}
+	}
+}
+
+// assignCategory assigns a category to a project.
+func (m Model) assignCategory(projectPath, categoryName string) tea.Cmd {
+	return func() tea.Msg {
+		// Load existing config
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to load config: %w", err)}
+		}
+		
+		// Find the project
+		var project *config.Project
+		for i := range cfg.Projects {
+			if cfg.Projects[i].Path == projectPath {
+				project = &cfg.Projects[i]
+				break
+			}
+		}
+		
+		if project == nil {
+			return worktreeErrorMsg{err: fmt.Errorf("project not found: %s", projectPath)}
+		}
+		
+		// Add category to config if it doesn't exist
+		cfg.AddCategory(categoryName)
+		
+		// Set project category
+		project.SetCategory(categoryName)
+		
+		// Save config
+		if err := config.SaveConfig(cfg); err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to save config: %w", err)}
+		}
+		
+		return categoryAssignedMsg{projectPath: projectPath, category: categoryName}
 	}
 }
 
