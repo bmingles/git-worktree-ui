@@ -16,6 +16,17 @@ var (
 			PaddingLeft(2).
 			PaddingBottom(1)
 
+	categoryStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FFA500")).
+			PaddingLeft(1)
+
+	selectedCategoryStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("#FFA500")).
+				Background(lipgloss.Color("#3C3C3C")).
+				PaddingLeft(1)
+
 	projectStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#04B575")).
@@ -206,14 +217,21 @@ func (m Model) View() string {
 	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 }
 
-// renderItems renders the list of projects and worktrees.
+// renderItems renders the list of categories, projects and worktrees.
 func (m Model) renderItems() string {
 	var b strings.Builder
 
 	for i, item := range m.items {
 		isSelected := i == m.selectedIndex
 
+		// Add extra spacing before categories (except the first one)
+		if item.Type == ItemTypeCategory && i > 0 {
+			b.WriteString("\n")
+		}
+
 		switch item.Type {
+		case ItemTypeCategory:
+			b.WriteString(m.renderCategory(item, isSelected))
 		case ItemTypeProject:
 			b.WriteString(m.renderProject(item, isSelected))
 		case ItemTypeWorktree:
@@ -223,6 +241,17 @@ func (m Model) renderItems() string {
 	}
 
 	return b.String()
+}
+
+// renderCategory renders a category header.
+func (m Model) renderCategory(item Item, isSelected bool) string {
+	// Categories are not selectable, always use regular style
+	style := categoryStyle
+	
+	categoryName := item.Category
+	
+	// Format: just the category name, no expand/collapse icon since categories are always expanded
+	return style.Render(categoryName)
 }
 
 // renderProject renders a project header.
@@ -326,6 +355,11 @@ func (m Model) renderHelp() string {
 		item := m.items[m.selectedIndex]
 		
 		switch item.Type {
+		case ItemTypeCategory:
+			help = []string{
+				"[n] new project",
+				"[esc/q] quit",
+			}
 		case ItemTypeProject:
 			help = []string{
 				"[a] add worktree",

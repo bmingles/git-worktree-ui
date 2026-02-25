@@ -17,6 +17,7 @@ import (
 type Model struct {
 	selectedIndex      int                            // Index of currently selected item (across all projects+worktrees)
 	projects           []config.Project               // List of projects from config
+	categories         []string                       // List of categories from config
 	worktrees          map[string][]worktree.Worktree // Map of project path to its worktrees
 	items              []Item                         // Flattened list of items for navigation
 	err                error                          // Error state
@@ -38,6 +39,7 @@ type Model struct {
 	pathSuggestions    []string                       // Path autocompletion suggestions
 	selectedSuggestion int                            // Index of selected suggestion
 	expandedProjects   map[string]bool                // Map of project path to expansion state
+	expandedCategories map[string]bool                // Map of category name to expansion state
 	width              int                            // Terminal width
 	height             int                            // Terminal height
 }
@@ -46,21 +48,23 @@ type Model struct {
 type ItemType int
 
 const (
-	ItemTypeProject ItemType = iota
+	ItemTypeCategory ItemType = iota
+	ItemTypeProject
 	ItemTypeWorktree
 )
 
-// Item represents a navigable item in the TUI (either a project header or worktree).
+// Item represents a navigable item in the TUI (category, project header, or worktree).
 type Item struct {
 	Type        ItemType
+	Category    string                 // Category name (for category items)
 	ProjectName string
 	ProjectPath string
 	ProjectTags []string               // Tags for the project
-	Worktree    *worktree.Worktree     // nil for project items
+	Worktree    *worktree.Worktree     // nil for category and project items
 }
 
-// NewModel creates a new TUI model with the given projects.
-func NewModel(projects []config.Project) Model {
+// NewModel creates a new TUI model with the given projects and categories.
+func NewModel(projects []config.Project, categories []string) Model {
 	ti := textinput.New()
 	ti.Placeholder = "branch-name"
 	ti.Focus()
@@ -83,19 +87,21 @@ func NewModel(projects []config.Project) Model {
 	projectPathInput.Width = 50
 	
 	m := Model{
-		selectedIndex:    0,
-		projects:         projects,
-		worktrees:        make(map[string][]worktree.Worktree),
-		items:            []Item{},
-		inputMode:        false,
-		inputStep:        0,
-		textInput:        ti,
-		pathInput:        worktreePathInput,
-		projectNameInput: nameInput,
-		projectPathInput: projectPathInput,
-		expandedProjects: make(map[string]bool),
-		width:            80,  // Default width
-		height:           24,  // Default height
+		selectedIndex:      0,
+		projects:           projects,
+		categories:         categories,
+		worktrees:          make(map[string][]worktree.Worktree),
+		items:              []Item{},
+		inputMode:          false,
+		inputStep:          0,
+		textInput:          ti,
+		pathInput:          worktreePathInput,
+		projectNameInput:   nameInput,
+		projectPathInput:   projectPathInput,
+		expandedProjects:   make(map[string]bool),
+		expandedCategories: make(map[string]bool),
+		width:              80,  // Default width
+		height:             24,  // Default height
 	}
 	
 	// Initialize all projects as collapsed (default state)
@@ -347,13 +353,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg.err
 		return m, nil
 	case projectAddedMsg:
-		// Reload config to get the new project list
+		// Reload config to get the new project list and categories
 		cfg, err := config.LoadConfig()
 		if err != nil {
 			m.err = err
 			return m, nil
 		}
 		m.projects = cfg.Projects
+		m.categories = cfg.Categories
 		m.buildItems()
 		m.loadWorktrees()
 		
@@ -385,11 +392,33 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "up", "k":
 		if m.selectedIndex > 0 {
 			m.selectedIndex--
+			// Skip category items
+			for m.selectedIndex >= 0 && m.items[m.selectedIndex].Type == ItemTypeCategory {
+				m.selectedIndex--
+			}
+			// If we went past the start, wrap to first non-category
+			if m.selectedIndex < 0 {
+				m.selectedIndex = 0
+				for m.selectedIndex < len(m.items) && m.items[m.selectedIndex].Type == ItemTypeCategory {
+					m.selectedIndex++
+				}
+			}
 		}
 		
 	case "down", "j":
 		if m.selectedIndex < len(m.items)-1 {
 			m.selectedIndex++
+			// Skip category items
+			for m.selectedIndex < len(m.items) && m.items[m.selectedIndex].Type == ItemTypeCategory {
+				m.selectedIndex++
+			}
+			// If we went past the end, stay at last non-category
+			if m.selectedIndex >= len(m.items) {
+				m.selectedIndex = len(m.items) - 1
+				for m.selectedIndex >= 0 && m.items[m.selectedIndex].Type == ItemTypeCategory {
+					m.selectedIndex--
+				}
+			}
 		}
 		
 	case "enter":
@@ -461,18 +490,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 		
 	case "a":
-		// Enter create mode
+		// Enter create mode (only for project and worktree items)
 		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
 			item := m.items[m.selectedIndex]
-			m.inputMode = true
-			m.inputStep = 0
-			m.inputProject = item.ProjectPath
-			m.textInput.Reset()
-			m.textInput.Focus()
-			m.pathInput.Reset()
-			m.pathInput.Blur()
-			m.pendingBranchName = ""
-			m.err = nil // Clear any previous errors
+			if item.Type != ItemTypeCategory {
+				m.inputMode = true
+				m.inputStep = 0
+				m.inputProject = item.ProjectPath
+				m.textInput.Reset()
+				m.textInput.Focus()
+				m.pathInput.Reset()
+				m.pathInput.Blur()
+				m.pendingBranchName = ""
+				m.err = nil // Clear any previous errors
+			}
 		}
 		
 	case "d":
@@ -502,26 +533,109 @@ func (m *Model) buildItems() {
 	oldItemsCount := len(m.items)
 	m.items = []Item{}
 	
+	// Group projects by category
+	categoryProjects := make(map[string][]config.Project)
+	var uncategorized []config.Project
+	
 	for _, project := range m.projects {
-		// Add project header
+		if project.Category != "" {
+			categoryProjects[project.Category] = append(categoryProjects[project.Category], project)
+		} else {
+			uncategorized = append(uncategorized, project)
+		}
+	}
+	
+	// Build items in order: categories (from config.categories), then uncategorized
+	for _, category := range m.categories {
+		projects := categoryProjects[category]
+		if len(projects) == 0 {
+			continue // Skip empty categories
+		}
+		
+		// Add category item
 		m.items = append(m.items, Item{
-			Type:        ItemTypeProject,
-			ProjectName: project.Name,
-			ProjectPath: project.Path,
-			ProjectTags: project.Tags,
+			Type:     ItemTypeCategory,
+			Category: category,
 		})
 		
-		// Add worktrees for this project only if it's expanded
-		if m.expandedProjects[project.Path] {
-			if wts, ok := m.worktrees[project.Path]; ok {
-				for i := range wts {
-					m.items = append(m.items, Item{
-						Type:        ItemTypeWorktree,
-						ProjectName: project.Name,
-						ProjectPath: project.Path,
-						ProjectTags: project.Tags,
-						Worktree:    &wts[i],
-					})
+		// Add projects under this category (always expanded)
+		for _, project := range projects {
+			// Add project header
+			m.items = append(m.items, Item{
+				Type:        ItemTypeProject,
+				Category:    category,
+				ProjectName: project.Name,
+				ProjectPath: project.Path,
+				ProjectTags: project.Tags,
+			})
+			
+			// Add worktrees for this project only if it's expanded
+			if m.expandedProjects[project.Path] {
+				if wts, ok := m.worktrees[project.Path]; ok {
+					for i := range wts {
+						m.items = append(m.items, Item{
+							Type:        ItemTypeWorktree,
+							Category:    category,
+							ProjectName: project.Name,
+							ProjectPath: project.Path,
+							ProjectTags: project.Tags,
+							Worktree:    &wts[i],
+						})
+					}
+				}
+			}
+		}
+	}
+	
+	// Add uncategorized projects at the bottom
+	if len(uncategorized) > 0 {
+		// Add "Uncategorized" category item
+		m.items = append(m.items, Item{
+			Type:     ItemTypeCategory,
+			Category: "Uncategorized",
+		})
+		
+		// Add projects under uncategorized (always expanded)
+		for _, project := range uncategorized {
+			// Add project header
+			m.items = append(m.items, Item{
+				Type:        ItemTypeProject,
+				Category:    "Uncategorized",
+				ProjectName: project.Name,
+				ProjectPath: project.Path,
+				ProjectTags: project.Tags,
+			})
+			
+			// Add worktrees for this project only if it's expanded
+			if m.expandedProjects[project.Path] {
+				if wts, ok := m.worktrees[project.Path]; ok {
+					for i := range wts {
+						m.items = append(m.items, Item{
+							Type:        ItemTypeWorktree,
+							Category:    "Uncategorized",
+							ProjectName: project.Name,
+							ProjectPath: project.Path,
+							ProjectTags: project.Tags,
+							Worktree:    &wts[i],
+						})
+					}
+				}
+			}
+		}
+	}
+	
+	// Skip over category items in selection - ensure we're on a selectable item
+	if len(m.items) > 0 {
+		if m.selectedIndex >= len(m.items) {
+			m.selectedIndex = len(m.items) - 1
+		}
+		// If current selection is a category, move to next non-category item
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) && m.items[m.selectedIndex].Type == ItemTypeCategory {
+			// Find next non-category item
+			for i := m.selectedIndex + 1; i < len(m.items); i++ {
+				if m.items[i].Type != ItemTypeCategory {
+					m.selectedIndex = i
+					break
 				}
 			}
 		}

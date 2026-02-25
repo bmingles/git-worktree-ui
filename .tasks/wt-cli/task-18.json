@@ -1,10 +1,10 @@
 {
   "id": "task-18",
   "description": "Display categories in TUI hierarchy: Currently TUI (pkg/tui/) shows flat list of projects. Config now has categories []string field that defines available categories and their display order. Restructure TUI to show three-level hierarchy: Category > Project > Worktree. Categories appear in order defined by config.categories. Projects with a category field are grouped under their category. Projects without category field appear in 'Uncategorized' group at bottom. Each category is collapsible (like current project nodes). Keyboard navigation (up/down) moves through all three levels. Opening (Enter/o) only works on worktree nodes. Creating worktree (n) and adding project (a) work when project node selected. Category nodes display project count. Visual indicators: Category nodes use different style than projects (see projectStyle as reference). Update buildItems() in model.go to build three-level item list respecting category grouping. Store category in Item struct. Add ItemTypeCategory. Handle expand/collapse for category nodes.",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-24T23:31:07",
-  "updated": "2026-02-24T23:31:07",
-  "note": null,
+  "updated": "2026-02-24T23:48:37",
+  "note": "Successfully implemented three-level category hierarchy in TUI. Categories display as top-level nodes in configured order, projects grouped under categories, uncategorized projects at bottom. Added visual distinction with orange category nodes vs green project nodes. All keyboard navigation works across all three levels. Tests pass.",
   "context": {
     "files": [
       "wt/pkg/tui/model.go",
@@ -29,5 +29,5 @@
   "depends_on": [
     "task-16"
   ],
-  "claimed_by": null
+  "claimed_by": "copilot-agent"
 }
