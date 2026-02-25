@@ -774,6 +774,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+	
+	case "e":
+		// Open config file in VS Code
+		return m, m.openConfigInVSCode()
 	}
 	
 	return m, nil
@@ -1152,6 +1156,21 @@ func (m Model) openInVSCode() tea.Cmd {
 	return func() tea.Msg {
 		if err := vscode.OpenInVSCode(pathToOpen); err != nil {
 			return vsCodeErrorMsg{err: err}
+		}
+		return nil
+	}
+}
+
+// openConfigInVSCode opens the wt config file in VS Code.
+func (m Model) openConfigInVSCode() tea.Cmd {
+	return func() tea.Msg {
+		configPath, err := config.GetConfigPath()
+		if err != nil {
+			return vsCodeErrorMsg{err: fmt.Errorf("failed to get config path: %w", err)}
+		}
+		
+		if err := vscode.OpenInVSCode(configPath); err != nil {
+			return vsCodeErrorMsg{err: fmt.Errorf("failed to open config file: %w", err)}
 		}
 		return nil
 	}

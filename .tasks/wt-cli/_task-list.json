@@ -105,7 +105,7 @@
     {
       "id": "task-21",
       "description": "Add open config file feature to TUI with keyboard shortcut. Implement a flow where pressing a designated key (suggest 'e' for edit or 'C' for Config) opens the wt config file in VS Code. Use config.GetConfigPath() to get the file path (typically ~/.config/wt/config.yaml), then call vscode.OpenInVSCode() with the config file path. This allows users to quickly edit configuration without leaving the TUI workflow. Show error messages if config path cannot be determined or VS Code fails to open.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-22",

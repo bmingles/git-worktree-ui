@@ -423,6 +423,7 @@ func (m Model) renderHelp() string {
 		case ItemTypeCategory:
 			help = []string{
 				"[n] new project",
+				"[e] edit config",
 				"[/] search",
 				"[esc/q] quit",
 			}
@@ -432,6 +433,7 @@ func (m Model) renderHelp() string {
 				"[c] assign category",
 				"[t] assign tags",
 				"[n] new project",
+				"[e] edit config",
 				"[/] search",
 				"[esc/q] quit",
 			}
@@ -441,6 +443,7 @@ func (m Model) renderHelp() string {
 					"[a] add worktree",
 					"[d] delete worktree",
 					"[n] new project",
+					"[e] edit config",
 					"[/] search",
 					"[esc/q] quit",
 				}
@@ -448,6 +451,7 @@ func (m Model) renderHelp() string {
 				help = []string{
 					"[a] add worktree",
 					"[n] new project",
+					"[e] edit config",
 					"[/] search",
 					"[esc/q] quit",
 				}
@@ -456,6 +460,7 @@ func (m Model) renderHelp() string {
 	} else {
 			help = []string{
 				"[n] new project",
+				"[e] edit config",
 				"[/] search",
 				"[esc/q] quit",
 			}
