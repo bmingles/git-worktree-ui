@@ -226,6 +226,32 @@ func (m Model) View() string {
 		content := boxStyle.Width(contentWidth).Render(b.String())
 		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 	}
+	// If in tag input mode, show the tag assignment prompt
+	if m.tagInputMode {
+		b.WriteString(helpStyle.Render("Assign Tags"))
+		b.WriteString("\n\n")
+		
+		// Show which project is being assigned tags
+		projectName := ""
+		for _, proj := range m.projects {
+			if proj.Path == m.tagProject {
+				projectName = proj.Name
+				break
+			}
+		}
+		if projectName != "" {
+			b.WriteString(helpStyle.Render(fmt.Sprintf("Project: %s", projectName)))
+			b.WriteString("\n\n")
+		}
+		
+		b.WriteString(helpStyle.Render("Tags (comma-separated): "))
+		b.WriteString(m.tagInput.View())
+		b.WriteString("\n\n")
+		b.WriteString(helpStyle.Render("Press Enter to assign • Esc to cancel"))
+		
+		content := boxStyle.Width(contentWidth).Render(b.String())
+		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
+	}
 
 	// Error display
 	if m.err != nil {
@@ -404,6 +430,7 @@ func (m Model) renderHelp() string {
 			help = []string{
 				"[a] add worktree",
 				"[c] assign category",
+				"[t] assign tags",
 				"[n] new project",
 				"[/] search",
 				"[esc/q] quit",

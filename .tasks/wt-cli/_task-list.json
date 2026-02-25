@@ -100,7 +100,7 @@
     {
       "id": "task-20",
       "description": "Add tag assignment feature to TUI with [t] keyboard shortcut. Currently projects can have tags that are displayed in the TUI (shown with tagStyle in brackets), but there's no TUI interface to add/remove tags. Implement a flow where pressing 't' when a project is selected shows a text input to enter comma-separated tag names. Parse the input and call project.AddTags() for each tag, then config.SaveConfig() to persist. The config already has AddTags, RemoveTags, and GetAllTags methods. Show error messages if save fails.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-21",

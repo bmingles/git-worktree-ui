@@ -49,6 +49,9 @@ type Model struct {
 	categoryInputMode  bool                           // True when in category input mode
 	categoryInput      textinput.Model                // Text input for category name
 	categoryProject    string                         // Project path for category assignment
+	tagInputMode       bool                           // True when in tag input mode
+	tagInput           textinput.Model                // Text input for tag names
+	tagProject         string                         // Project path for tag assignment
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -103,6 +106,11 @@ func NewModel(projects []config.Project, categories []string) Model {
 	categoryInput.CharLimit = 100
 	categoryInput.Width = 50
 	
+	tagInput := textinput.New()
+	tagInput.Placeholder = "Enter tags (comma-separated)"
+	tagInput.CharLimit = 200
+	tagInput.Width = 50
+	
 	m := Model{
 		selectedIndex:      0,
 		projects:           projects,
@@ -117,6 +125,7 @@ func NewModel(projects []config.Project, categories []string) Model {
 		projectPathInput:   projectPathInput,
 		searchInput:        searchInput,
 		categoryInput:      categoryInput,
+		tagInput:           tagInput,
 		expandedProjects:   make(map[string]bool),
 		expandedCategories: make(map[string]bool),
 		width:              80,  // Default width
@@ -370,6 +379,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.categoryInput, cmd = m.categoryInput.Update(msg)
 		return m, cmd
 	}
+
+	// If in tag input mode, handle tag input
+	if m.tagInputMode {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				// Submit the tags
+				tagInput := m.tagInput.Value()
+				if tagInput != "" {
+					projectPath := m.tagProject
+					m.tagInputMode = false
+					m.tagInput.Reset()
+					m.tagInput.Blur()
+					m.tagProject = ""
+					return m, m.assignTags(projectPath, tagInput)
+				}
+				// Empty tag input, cancel
+				m.tagInputMode = false
+				m.tagInput.Reset()
+				m.tagInput.Blur()
+				m.tagProject = ""
+				return m, nil
+			case "esc", "ctrl+c":
+				// Cancel tag input mode
+				m.tagInputMode = false
+				m.tagInput.Reset()
+				m.tagInput.Blur()
+				m.tagProject = ""
+				return m, nil
+			default:
+				// Update tag input
+				var cmd tea.Cmd
+				m.tagInput, cmd = m.tagInput.Update(msg)
+				return m, cmd
+			}
+		}
+		var cmd tea.Cmd
+		m.tagInput, cmd = m.tagInput.Update(msg)
+		return m, cmd
+	}
 	
 	// If in input mode, handle text input updates
 	if m.inputMode {
@@ -494,6 +544,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.projects = cfg.Projects
 		m.categories = cfg.Categories
+		m.buildItems()
+		
+		// Keep the current project selected
+		for i, item := range m.items {
+			if item.Type == ItemTypeProject && item.ProjectPath == msg.projectPath {
+				m.selectedIndex = i
+				break
+			}
+		}
+		return m, nil
+	case tagsAssignedMsg:
+		// Reload config to get the updated project tags
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			m.err = err
+			return m, nil
+		}
+		m.projects = cfg.Projects
 		m.buildItems()
 		
 		// Keep the current project selected
@@ -689,6 +757,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.categoryProject = item.ProjectPath
 				m.categoryInput.Reset()
 				m.categoryInput.Focus()
+				m.err = nil // Clear any previous errors
+				return m, nil
+			}
+		}		
+	case "t":
+		// Enter tag input mode (only for projects)
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			item := m.items[m.selectedIndex]
+			if item.Type == ItemTypeProject {
+				m.tagInputMode = true
+				m.tagProject = item.ProjectPath
+				m.tagInput.Reset()
+				m.tagInput.Focus()
 				m.err = nil // Clear any previous errors
 				return m, nil
 			}
@@ -1040,6 +1121,12 @@ type categoryAssignedMsg struct {
 	category    string
 }
 
+// tagsAssignedMsg is sent when tags are successfully assigned to a project.
+type tagsAssignedMsg struct {
+	projectPath string
+	tags        []string
+}
+
 // openInVSCode opens the selected item (project or worktree) in VS Code.
 func (m Model) openInVSCode() tea.Cmd {
 	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
@@ -1204,6 +1291,53 @@ func (m Model) assignCategory(projectPath, categoryName string) tea.Cmd {
 		}
 		
 		return categoryAssignedMsg{projectPath: projectPath, category: categoryName}
+	}
+}
+// assignTags assigns tags to a project.
+func (m Model) assignTags(projectPath, tagInput string) tea.Cmd {
+	return func() tea.Msg {
+		// Load existing config
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to load config: %w", err)}
+		}
+		
+		// Find the project
+		var project *config.Project
+		for i := range cfg.Projects {
+			if cfg.Projects[i].Path == projectPath {
+				project = &cfg.Projects[i]
+				break
+			}
+		}
+		
+		if project == nil {
+			return worktreeErrorMsg{err: fmt.Errorf("project not found: %s", projectPath)}
+		}
+		
+		// Parse comma-separated tags
+		tagStrs := strings.Split(tagInput, ",")
+		var tags []string
+		for _, tag := range tagStrs {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+		
+		if len(tags) == 0 {
+			return worktreeErrorMsg{err: fmt.Errorf("no valid tags provided")}
+		}
+		
+		// Add tags to project (AddTags avoids duplicates)
+		project.AddTags(tags...)
+		
+		// Save config
+		if err := config.SaveConfig(cfg); err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to save config: %w", err)}
+		}
+		
+		return tagsAssignedMsg{projectPath: projectPath, tags: tags}
 	}
 }
 
