@@ -1,0 +1,28 @@
+{
+  "id": "task-22",
+  "description": "Add manual refresh keybinding to TUI to reload project and worktree data. Currently, the TUI loads worktrees once at startup via loadWorktrees() and auto-reloads after create/delete operations, but users cannot manually trigger a refresh to see external changes (e.g., worktrees created outside the TUI, status updates from git operations). The desired outcome is a keybinding (suggest 'r' for refresh or 'ctrl+r') that reloads all projects' worktrees and their git status, with the refresh action documented in the help text at the bottom of the TUI.",
+  "status": "todo",
+  "created": "2026-02-25T16:18:59",
+  "updated": "2026-02-25T16:18:59",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/tui/model.go",
+      "wt/pkg/tui/view.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Pressing the refresh key (e.g., 'r') triggers a reload of all worktrees and their status information",
+    "The help text at the bottom displays the refresh keybinding (e.g., '[r] refresh')",
+    "After refreshing, the TUI displays updated worktree lists and status indicators (*, ↑, ↓)",
+    "The selected item remains selected (or closest valid item) after refresh"
+  ],
+  "verification": {
+    "type": "instruction",
+    "value": "Run 'go run .' in the wt directory, press the refresh key, verify worktree list updates without errors and help text shows the keybinding"
+  },
+  "depends_on": [],
+  "claimed_by": null
+}
