@@ -778,6 +778,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "e":
 		// Open config file in VS Code
 		return m, m.openConfigInVSCode()
+	
+	case "r":
+		// Refresh worktrees and status
+		m.err = nil // Clear any previous errors
+		m.loadWorktrees()
+		// Try to maintain the selected index, or reset to first valid item if out of bounds
+		if m.selectedIndex >= len(m.items) {
+			m.selectedIndex = 0
+			for m.selectedIndex < len(m.items) && m.items[m.selectedIndex].Type == ItemTypeCategory {
+				m.selectedIndex++
+			}
+		}
+		return m, nil
 	}
 	
 	return m, nil

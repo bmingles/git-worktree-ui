@@ -110,7 +110,7 @@
     {
       "id": "task-22",
       "description": "Add manual refresh keybinding to TUI to reload project and worktree data. Currently, the TUI loads worktrees once at startup via loadWorktrees() and auto-reloads after create/delete operations, but users cannot manually trigger a refresh to see external changes (e.g., worktrees created outside the TUI, status updates from git operations). The desired outcome is a keybinding (suggest 'r' for refresh or 'ctrl+r') that reloads all projects' worktrees and their git status, with the refresh action documented in the help text at the bottom of the TUI.",
-      "status": "todo"
+      "status": "completed"
     }
   ]
 }
