@@ -414,72 +414,54 @@ func (m Model) renderWorktree(item Item, isSelected bool) string {
 
 // renderHelp renders the help text.
 func (m Model) renderHelp() string {
-	var help []string
+	var rows []string
 	
+	// Determine what to show based on selected item
 	if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
 		item := m.items[m.selectedIndex]
 		
 		switch item.Type {
 		case ItemTypeCategory:
-			help = []string{
-				"[n] new project",
-				"[r] refresh",
-				"[e] edit config",
-				"[/] search",
-				"[esc/q] quit",
+			// Category: only project-level and global
+			rows = []string{
+				"[n] new project • [c] assign category • [t] assign tags",
 			}
 		case ItemTypeProject:
-			help = []string{
+			// Project: worktree-level, project-level, and global
+			rows = []string{
 				"[a] add worktree",
-				"[c] assign category",
-				"[t] assign tags",
-				"[n] new project",
-				"[r] refresh",
-				"[e] edit config",
-				"[/] search",
-				"[esc/q] quit",
+				"[n] new project • [c] assign category • [t] assign tags",
 			}
 		case ItemTypeWorktree:
+			// Worktree: worktree-level (with delete if non-primary), project-level, and global
 			if item.Worktree != nil && !item.Worktree.IsPrimary {
-				help = []string{
-					"[a] add worktree",
-					"[d] delete worktree",
-					"[n] new project",
-					"[r] refresh",
-					"[e] edit config",
-					"[/] search",
-					"[esc/q] quit",
+				rows = []string{
+					"[a] add worktree • [d] delete worktree",
+					"[n] new project • [c] assign category • [t] assign tags",
 				}
 			} else {
-				help = []string{
+				rows = []string{
 					"[a] add worktree",
-					"[n] new project",
-					"[r] refresh",
-					"[e] edit config",
-					"[/] search",
-					"[esc/q] quit",
+					"[n] new project • [c] assign category • [t] assign tags",
 				}
 			}
 		}
 	} else {
-			help = []string{
-				"[n] new project",
-				"[r] refresh",
-				"[e] edit config",
-				"[/] search",
-				"[esc/q] quit",
-			}
-	}
-	
-	// If filter is active (but not in search mode), show different escape help
-	if m.filterActive && !m.searchMode {
-		for i, h := range help {
-			if strings.Contains(h, "esc/q") {
-				help[i] = "[esc] clear filter • [q] quit"
-				break
-			}
+		// No item selected: only project-level and global
+		rows = []string{
+			"[n] new project • [c] assign category • [t] assign tags",
 		}
 	}
 	
-	return helpStyle.Render(strings.Join(help, "\n"))
+	// Global commands - always available
+	globalCommands := "[/] search • [e] edit config • [r] refresh • [esc/q] quit"
+	
+	// If filter is active (but not in search mode), show different escape help
+	if m.filterActive && !m.searchMode {
+		globalCommands = "[/] search • [e] edit config • [r] refresh • [esc] clear filter • [q] quit"
+	}
+	
+	rows = append(rows, globalCommands)
+	
+	return helpStyle.Render(strings.Join(rows, "\n\n"))
 }
