@@ -209,6 +209,18 @@ func (m Model) View() string {
 	// Render items
 	b.WriteString(m.renderItems())
 
+	// Search box
+	if m.searchMode {
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render("Search: "))
+		b.WriteString(m.searchInput.View())
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render("Press Enter to apply filter • Esc to cancel"))
+	} else if m.filterActive {
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render(fmt.Sprintf("Filter: %s (Press Esc to clear)", m.filterTerm)))
+	}
+
 	// Help text
 	b.WriteString("\n")
 	b.WriteString(m.renderHelp())
@@ -358,12 +370,14 @@ func (m Model) renderHelp() string {
 		case ItemTypeCategory:
 			help = []string{
 				"[n] new project",
+				"[/] search",
 				"[esc/q] quit",
 			}
 		case ItemTypeProject:
 			help = []string{
 				"[a] add worktree",
 				"[n] new project",
+				"[/] search",
 				"[esc/q] quit",
 			}
 		case ItemTypeWorktree:
@@ -372,20 +386,33 @@ func (m Model) renderHelp() string {
 					"[a] add worktree",
 					"[d] delete worktree",
 					"[n] new project",
+					"[/] search",
 					"[esc/q] quit",
 				}
 			} else {
 				help = []string{
 					"[a] add worktree",
 					"[n] new project",
+					"[/] search",
 					"[esc/q] quit",
 				}
 			}
 		}
 	} else {
-		help = []string{
-			"[n] new project",
-			"[esc/q] quit",
+			help = []string{
+				"[n] new project",
+				"[/] search",
+				"[esc/q] quit",
+			}
+	}
+	
+	// If filter is active (but not in search mode), show different escape help
+	if m.filterActive && !m.searchMode {
+		for i, h := range help {
+			if strings.Contains(h, "esc/q") {
+				help[i] = "[esc] clear filter • [q] quit"
+				break
+			}
 		}
 	}
 	

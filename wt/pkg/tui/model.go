@@ -42,6 +42,10 @@ type Model struct {
 	expandedCategories map[string]bool                // Map of category name to expansion state
 	width              int                            // Terminal width
 	height             int                            // Terminal height
+	searchMode         bool                           // True when actively typing in search box
+	filterActive       bool                           // True when filter is applied (not in search input mode)
+	searchInput        textinput.Model                // Text input for search/filter
+	filterTerm         string                         // Current filter term
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -86,6 +90,11 @@ func NewModel(projects []config.Project, categories []string) Model {
 	projectPathInput.CharLimit = 200
 	projectPathInput.Width = 50
 	
+	searchInput := textinput.New()
+	searchInput.Placeholder = "Search projects, worktrees, tags, or categories..."
+	searchInput.CharLimit = 100
+	searchInput.Width = 70
+	
 	m := Model{
 		selectedIndex:      0,
 		projects:           projects,
@@ -98,6 +107,7 @@ func NewModel(projects []config.Project, categories []string) Model {
 		pathInput:          worktreePathInput,
 		projectNameInput:   nameInput,
 		projectPathInput:   projectPathInput,
+		searchInput:        searchInput,
 		expandedProjects:   make(map[string]bool),
 		expandedCategories: make(map[string]bool),
 		width:              80,  // Default width
@@ -123,6 +133,54 @@ func (m Model) Init() tea.Cmd {
 
 // Update handles messages and updates the model (bubbletea.Model interface).
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// If in search mode, handle search input
+	if m.searchMode {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "enter":
+				// Exit search input mode but keep filter applied
+				if m.searchInput.Value() != "" {
+					m.searchMode = false
+					m.filterActive = true
+					m.filterTerm = m.searchInput.Value()
+					m.searchInput.Blur()
+					m.buildItems()
+					return m, nil
+				}
+				// Empty search, exit search mode and clear filter
+				m.searchMode = false
+				m.filterActive = false
+				m.filterTerm = ""
+				m.searchInput.Reset()
+				m.searchInput.Blur()
+				m.buildItems()
+				return m, nil
+			case "esc", "ctrl+c":
+				// Cancel search mode and clear filter
+				m.searchMode = false
+				m.filterActive = false
+				m.filterTerm = ""
+				m.searchInput.Reset()
+				m.searchInput.Blur()
+				m.buildItems()
+				return m, nil
+			default:
+				// Update search input and apply filter in real-time
+				var cmd tea.Cmd
+				m.searchInput, cmd = m.searchInput.Update(msg)
+				m.filterTerm = m.searchInput.Value()
+				m.buildItems()
+				return m, cmd
+			}
+		default:
+			// Update search input for non-key messages
+			var cmd tea.Cmd
+			m.searchInput, cmd = m.searchInput.Update(msg)
+			return m, cmd
+		}
+	}
+	
 	// If in add project mode, handle project name/path input
 	if m.addProjectMode {
 		switch msg := msg.(type) {
@@ -385,9 +443,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // handleKeyPress processes keyboard input.
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "q", "ctrl+c", "esc":
+	case "q", "ctrl+c":
 		m.quitting = true
 		return m, tea.Quit
+		
+	case "esc":
+		// Handle Esc based on current mode
+		if m.searchMode {
+			// In search input mode: exit search mode and clear filter
+			m.searchMode = false
+			m.filterActive = false
+			m.filterTerm = ""
+			m.searchInput.Reset()
+			m.searchInput.Blur()
+			m.buildItems()
+			return m, nil
+		} else if m.filterActive {
+			// Filter is active but not in search mode: clear filter
+			m.filterActive = false
+			m.filterTerm = ""
+			m.buildItems()
+			return m, nil
+		}
+		// No filter: quit app
+		m.quitting = true
+		return m, tea.Quit
+		
+	case "/":
+		// Activate search mode
+		m.searchMode = true
+		m.searchInput.Focus()
+		m.err = nil // Clear any previous errors
+		return m, nil
 		
 	case "up", "k":
 		if m.selectedIndex > 0 {
@@ -528,6 +615,42 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// matchesFilter checks if an item matches the current filter term.
+// Matches against project name, worktree branch name, tags, and category (case-insensitive).
+func (m *Model) matchesFilter(category string, project config.Project, wt *worktree.Worktree) bool {
+	if m.filterTerm == "" {
+		return true
+	}
+	
+	filterLower := strings.ToLower(m.filterTerm)
+	
+	// Match against category
+	if strings.Contains(strings.ToLower(category), filterLower) {
+		return true
+	}
+	
+	// Match against project name
+	if strings.Contains(strings.ToLower(project.Name), filterLower) {
+		return true
+	}
+	
+	// Match against project tags
+	for _, tag := range project.Tags {
+		if strings.Contains(strings.ToLower(tag), filterLower) {
+			return true
+		}
+	}
+	
+	// If worktree is provided, match against branch name
+	if wt != nil {
+		if strings.Contains(strings.ToLower(wt.Branch), filterLower) {
+			return true
+		}
+	}
+	
+	return false
+}
+
 // buildItems creates a flattened list of items for navigation.
 func (m *Model) buildItems() {
 	oldItemsCount := len(m.items)
@@ -552,6 +675,33 @@ func (m *Model) buildItems() {
 			continue // Skip empty categories
 		}
 		
+		// When filtering, check if category has any matches
+		categoryHasMatches := false
+		if m.filterTerm != "" {
+			for _, project := range projects {
+				if m.matchesFilter(category, project, nil) {
+					categoryHasMatches = true
+					break
+				}
+				// Check worktrees
+				if wts, ok := m.worktrees[project.Path]; ok {
+					for i := range wts {
+						if m.matchesFilter(category, project, &wts[i]) {
+							categoryHasMatches = true
+							break
+						}
+					}
+				}
+			}
+		} else {
+			categoryHasMatches = true // No filter, show all
+		}
+		
+		// Skip category if no matches when filtering
+		if !categoryHasMatches {
+			continue
+		}
+		
 		// Add category item
 		m.items = append(m.items, Item{
 			Type:     ItemTypeCategory,
@@ -560,6 +710,33 @@ func (m *Model) buildItems() {
 		
 		// Add projects under this category (always expanded)
 		for _, project := range projects {
+			// Check if project matches filter
+			projectMatches := m.filterTerm == "" || m.matchesFilter(category, project, nil)
+			
+			// Check if any worktrees match (check all when filtering, only expanded when not)
+			hasMatchingWorktrees := false
+			if m.filterTerm != "" {
+				// When filtering, check all worktrees
+				if wts, ok := m.worktrees[project.Path]; ok {
+					for i := range wts {
+						if m.matchesFilter(category, project, &wts[i]) {
+							hasMatchingWorktrees = true
+							break
+						}
+					}
+				}
+			} else if m.expandedProjects[project.Path] {
+				// When not filtering, only check if expanded
+				if wts, ok := m.worktrees[project.Path]; ok {
+					hasMatchingWorktrees = len(wts) > 0
+				}
+			}
+			
+			// Skip project if neither it nor its worktrees match
+			if !projectMatches && !hasMatchingWorktrees {
+				continue
+			}
+			
 			// Add project header
 			m.items = append(m.items, Item{
 				Type:        ItemTypeProject,
@@ -569,10 +746,14 @@ func (m *Model) buildItems() {
 				ProjectTags: project.Tags,
 			})
 			
-			// Add worktrees for this project only if it's expanded
-			if m.expandedProjects[project.Path] {
+			// Add worktrees: when filtering show all matches, when not filtering respect expansion
+			if m.filterTerm != "" || m.expandedProjects[project.Path] {
 				if wts, ok := m.worktrees[project.Path]; ok {
 					for i := range wts {
+						// Apply filter to worktrees if filtering
+						if m.filterTerm != "" && !m.matchesFilter(category, project, &wts[i]) {
+							continue
+						}
 						m.items = append(m.items, Item{
 							Type:        ItemTypeWorktree,
 							Category:    category,
@@ -589,6 +770,33 @@ func (m *Model) buildItems() {
 	
 	// Add uncategorized projects at the bottom
 	if len(uncategorized) > 0 {
+		// When filtering, check if uncategorized has any matches
+		uncategorizedHasMatches := false
+		if m.filterTerm != "" {
+			for _, project := range uncategorized {
+				if m.matchesFilter("Uncategorized", project, nil) {
+					uncategorizedHasMatches = true
+					break
+				}
+				// Check worktrees
+				if wts, ok := m.worktrees[project.Path]; ok {
+					for i := range wts {
+						if m.matchesFilter("Uncategorized", project, &wts[i]) {
+							uncategorizedHasMatches = true
+							break
+						}
+					}
+				}
+			}
+		} else {
+			uncategorizedHasMatches = true // No filter, show all
+		}
+		
+		// Skip uncategorized section if no matches when filtering
+		if !uncategorizedHasMatches {
+			goto skipUncategorized
+		}
+		
 		// Add "Uncategorized" category item
 		m.items = append(m.items, Item{
 			Type:     ItemTypeCategory,
@@ -597,6 +805,33 @@ func (m *Model) buildItems() {
 		
 		// Add projects under uncategorized (always expanded)
 		for _, project := range uncategorized {
+			// Check if project matches filter
+			projectMatches := m.filterTerm == "" || m.matchesFilter("Uncategorized", project, nil)
+			
+			// Check if any worktrees match (check all when filtering, only expanded when not)
+			hasMatchingWorktrees := false
+			if m.filterTerm != "" {
+				// When filtering, check all worktrees
+				if wts, ok := m.worktrees[project.Path]; ok {
+					for i := range wts {
+						if m.matchesFilter("Uncategorized", project, &wts[i]) {
+							hasMatchingWorktrees = true
+							break
+						}
+					}
+				}
+			} else if m.expandedProjects[project.Path] {
+				// When not filtering, only check if expanded
+				if wts, ok := m.worktrees[project.Path]; ok {
+					hasMatchingWorktrees = len(wts) > 0
+				}
+			}
+			
+			// Skip project if neither it nor its worktrees match
+			if !projectMatches && !hasMatchingWorktrees {
+				continue
+			}
+			
 			// Add project header
 			m.items = append(m.items, Item{
 				Type:        ItemTypeProject,
@@ -606,10 +841,14 @@ func (m *Model) buildItems() {
 				ProjectTags: project.Tags,
 			})
 			
-			// Add worktrees for this project only if it's expanded
-			if m.expandedProjects[project.Path] {
+			// Add worktrees: when filtering show all matches, when not filtering respect expansion
+			if m.filterTerm != "" || m.expandedProjects[project.Path] {
 				if wts, ok := m.worktrees[project.Path]; ok {
 					for i := range wts {
+						// Apply filter to worktrees if filtering
+						if m.filterTerm != "" && !m.matchesFilter("Uncategorized", project, &wts[i]) {
+							continue
+						}
 						m.items = append(m.items, Item{
 							Type:        ItemTypeWorktree,
 							Category:    "Uncategorized",
@@ -623,6 +862,8 @@ func (m *Model) buildItems() {
 			}
 		}
 	}
+	
+skipUncategorized:
 	
 	// Skip over category items in selection - ensure we're on a selectable item
 	if len(m.items) > 0 {

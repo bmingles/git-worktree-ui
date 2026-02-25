@@ -114,3 +114,120 @@ func TestBuildItemsWithoutCategories(t *testing.T) {
 		t.Errorf("Expected second item to be project-a, got %+v", m.items[1])
 	}
 }
+
+func TestSearchFilter(t *testing.T) {
+	// Test data with various categories, projects, and tags
+	categories := []string{"frontend", "backend"}
+	projects := []config.Project{
+		{
+			Name:     "react-app",
+			Path:     "/path/to/react-app",
+			Category: "frontend",
+			Tags:     []string{"typescript", "web"},
+		},
+		{
+			Name:     "vue-app",
+			Path:     "/path/to/vue-app",
+			Category: "frontend",
+			Tags:     []string{"javascript", "web"},
+		},
+		{
+			Name:     "api-server",
+			Path:     "/path/to/api-server",
+			Category: "backend",
+			Tags:     []string{"golang", "api"},
+		},
+	}
+
+	m := NewModel(projects, categories)
+
+	// Test 1: Filter by project name
+	m.filterTerm = "react"
+	m.buildItems()
+	
+	// Should show: frontend (category), react-app (project)
+	// Note: vue-app and backend category should be hidden
+	if len(m.items) != 2 {
+		t.Errorf("Expected 2 items when filtering by 'react', got %d", len(m.items))
+	}
+	if len(m.items) >= 2 {
+		if m.items[0].Type != ItemTypeCategory || m.items[0].Category != "frontend" {
+			t.Errorf("Expected first item to be frontend category, got %+v", m.items[0])
+		}
+		if m.items[1].Type != ItemTypeProject || m.items[1].ProjectName != "react-app" {
+			t.Errorf("Expected second item to be react-app, got %+v", m.items[1])
+		}
+	}
+
+	// Test 2: Filter by tag
+	m.filterTerm = "golang"
+	m.buildItems()
+	
+	// Should show: backend (category), api-server (project)
+	if len(m.items) != 2 {
+		t.Errorf("Expected 2 items when filtering by 'golang' tag, got %d", len(m.items))
+	}
+	if len(m.items) >= 2 {
+		if m.items[0].Type != ItemTypeCategory || m.items[0].Category != "backend" {
+			t.Errorf("Expected first item to be backend category, got %+v", m.items[0])
+		}
+		if m.items[1].Type != ItemTypeProject || m.items[1].ProjectName != "api-server" {
+			t.Errorf("Expected second item to be api-server, got %+v", m.items[1])
+		}
+	}
+
+	// Test 3: Filter by category name
+	m.filterTerm = "front"
+	m.buildItems()
+	
+	// Should show: frontend (category), react-app, vue-app
+	if len(m.items) != 3 {
+		t.Errorf("Expected 3 items when filtering by 'front' (category), got %d", len(m.items))
+	}
+
+	// Test 4: Filter with no matches
+	m.filterTerm = "nonexistent"
+	m.buildItems()
+	
+	// Should show no items
+	if len(m.items) != 0 {
+		t.Errorf("Expected 0 items when filtering with no matches, got %d", len(m.items))
+	}
+
+	// Test 5: Clear filter
+	m.filterTerm = ""
+	m.buildItems()
+	
+	// Should show all items: frontend (category), react-app, vue-app, backend (category), api-server
+	if len(m.items) != 5 {
+		t.Errorf("Expected 5 items with no filter, got %d", len(m.items))
+	}
+
+	// Test 6: Case-insensitive matching
+	m.filterTerm = "REACT"
+	m.buildItems()
+	
+	// Should show: frontend (category), react-app
+	if len(m.items) != 2 {
+		t.Errorf("Expected 2 items when filtering by 'REACT' (case-insensitive), got %d", len(m.items))
+	}
+
+	// Test 7: Filtering shows worktrees even when project is collapsed
+	// Start with all projects collapsed
+	for _, p := range projects {
+		m.expandedProjects[p.Path] = false
+	}
+	m.filterTerm = "" // Clear filter first
+	m.buildItems()
+	
+	// Now apply a filter - should show matching worktrees even though projects are collapsed
+	m.filterTerm = "web"  // Matches tags on react-app and vue-app
+	m.buildItems()
+	
+	// Should have more items than just categories and projects
+	// Even though projects are collapsed, filtering should show worktrees
+	// At minimum: frontend (category), react-app (project), vue-app (project) = 3 items
+	if len(m.items) < 3 {
+		t.Errorf("Expected at least 3 items when filtering with collapsed projects, got %d", len(m.items))
+	}
+}

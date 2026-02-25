@@ -1,10 +1,10 @@
 {
   "id": "task-17",
   "description": "Add search/filter feature to TUI: Currently TUI (pkg/tui/) displays category > project > worktree hierarchy. Add '/' key to activate search mode with text input at bottom of screen. Filter items by matching search term against project name, worktree name (branch), tags, or category (case-insensitive substring match). Display filtered results maintaining hierarchy structure. While typing in search box: all keypresses (including shortcuts) are captured as text input, up/down arrows navigate filtered items. Press Enter to EXIT search input mode while KEEPING filter applied (enables shortcuts on filtered results). Press Esc from search input to clear filter and exit search mode. When filter is active but not in search input mode: shortcuts work normally on filtered items, Esc clears the filter. When no filter active: Esc quits app. Keyboard navigation (up/down) only moves through visible filtered items. When filter changes, keep selection if item still visible, otherwise reset to first. Model struct needs: searchMode bool, filterActive bool, searchInput textinput.Model, filterTerm string. Update buildItems() to respect active filter when building hierarchy.",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-24T22:45:53",
-  "updated": "2026-02-24T23:31:30",
-  "note": null,
+  "updated": "2026-02-25T00:20:24",
+  "note": "Successfully implemented search/filter feature for TUI. Added search mode with '/' key, real-time filtering by project name/worktree/tags/category, Enter to keep filter applied, Esc handling for different modes. All tests passing.",
   "context": {
     "files": [
       "wt/pkg/tui/model.go",
@@ -34,5 +34,5 @@
     "task-16",
     "task-18"
   ],
-  "claimed_by": null
+  "claimed_by": "copilot-agent"
 }

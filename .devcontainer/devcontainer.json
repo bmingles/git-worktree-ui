@@ -28,7 +28,9 @@
   "mounts": [
     // Bind-mount skills from host into project directory for easier debugging of skills.
     // Can remove the `readonly` setting if you want to edit them from the container
-    "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.agents/skills,type=bind,consistency=cached,readonly"
+    "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.agents/skills,type=bind,consistency=cached,readonly",
+    // Persist Go module cache across container rebuilds
+    "source=vscode-dashboard-gomodcache,target=/go/pkg/mod,type=volume"
   ],
 
   "postCreateCommand": "echo '' >> ~/.bashrc && echo '# Custom prompt - hybrid of local + container features' >> ~/.bashrc && echo 'export PS1='\\''\\[\\]`export XIT=$?; [ \"$XIT\" -ne 0 ] && echo -n \"\\[\\033[1;31m\\]\" || echo -n \"\\[\\033[0m\\]\"`container`export FOLDER=$(basename \"$PWD\"); export BRANCH=\"$(git --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || git --no-optional-locks rev-parse --short HEAD 2>/dev/null)\"; if [ \"${BRANCH:-}\" != \"\" ]; then [ \"$FOLDER\" != \"$BRANCH\" ] && echo -n \" \\[\\033[32m\\]$FOLDER\"; echo -n \" \\[\\033[33m\\]($BRANCH)\"; else echo -n \" \\[\\033[32m\\]$FOLDER\"; fi`\\[\\033[00m\\] $ \\[\\]'\\''' >> ~/.bashrc",
