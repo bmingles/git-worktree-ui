@@ -1,0 +1,32 @@
+{
+  "id": "task-21",
+  "description": "Add open config file feature to TUI with keyboard shortcut. Implement a flow where pressing a designated key (suggest 'e' for edit or 'C' for Config) opens the wt config file in VS Code. Use config.GetConfigPath() to get the file path (typically ~/.config/wt/config.yaml), then call vscode.OpenInVSCode() with the config file path. This allows users to quickly edit configuration without leaving the TUI workflow. Show error messages if config path cannot be determined or VS Code fails to open.",
+  "status": "todo",
+  "created": "2026-02-25T14:49:51",
+  "updated": "2026-02-25T14:49:51",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/tui/model.go",
+      "wt/pkg/tui/view.go",
+      "wt/pkg/config/config.go",
+      "wt/pkg/vscode/vscode.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Pressing the designated key (e.g., 'e' or 'C') triggers opening the config file",
+    "Uses config.GetConfigPath() to get the correct config file path",
+    "Calls vscode.OpenInVSCode() with the config file path",
+    "Config file opens in VS Code successfully",
+    "Help text shows the shortcut (e.g., '[e] edit config' or '[C] open config') regardless of what item is selected",
+    "Error handling for cases where config path cannot be determined or VS Code fails to open"
+  ],
+  "verification": {
+    "type": "instruction",
+    "value": "Manually test: run wt, press the designated key, verify config file opens in VS Code at the correct path (~/.config/wt/config.yaml or custom path)"
+  },
+  "depends_on": [],
+  "claimed_by": null
+}

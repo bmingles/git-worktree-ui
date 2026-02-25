@@ -1,0 +1,31 @@
+{
+  "id": "task-20",
+  "description": "Add tag assignment feature to TUI with [t] keyboard shortcut. Currently projects can have tags that are displayed in the TUI (shown with tagStyle in brackets), but there's no TUI interface to add/remove tags. Implement a flow where pressing 't' when a project is selected shows a text input to enter comma-separated tag names. Parse the input and call project.AddTags() for each tag, then config.SaveConfig() to persist. The config already has AddTags, RemoveTags, and GetAllTags methods. Show error messages if save fails.",
+  "status": "todo",
+  "created": "2026-02-25T14:49:42",
+  "updated": "2026-02-25T14:49:42",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/tui/model.go",
+      "wt/pkg/tui/view.go",
+      "wt/pkg/config/config.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Pressing 't' on a selected project enters tag input mode (only works when project is selected, not on worktrees or categories)",
+    "Text input prompts for tags with placeholder like 'Enter tags (comma-separated)'",
+    "After entering tags and pressing Enter, the tags are added to the project (using AddTags method which avoids duplicates)",
+    "Config is saved successfully and TUI returns to normal navigation mode showing updated tags",
+    "Help text shows '[t] assign tags' when a project is selected",
+    "Help text does NOT show '[t]' shortcut for worktrees or categories"
+  ],
+  "verification": {
+    "type": "instruction",
+    "value": "Manually test: run wt, select a project, press 't', enter 'backend,api,go', verify config file is updated with project.tags and tags appear in TUI display"
+  },
+  "depends_on": [],
+  "claimed_by": null
+}

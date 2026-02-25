@@ -91,6 +91,21 @@
       "id": "task-18",
       "description": "Display categories in TUI hierarchy: Currently TUI (pkg/tui/) shows flat list of projects. Config now has categories []string field that defines available categories and their display order. Restructure TUI to show three-level hierarchy: Category > Project > Worktree. Categories appear in order defined by config.categories. Projects with a category field are grouped under their category. Projects without category field appear in 'Uncategorized' group at bottom. Each category is collapsible (like current project nodes). Keyboard navigation (up/down) moves through all three levels. Opening (Enter/o) only works on worktree nodes. Creating worktree (n) and adding project (a) work when project node selected. Category nodes display project count. Visual indicators: Category nodes use different style than projects (see projectStyle as reference). Update buildItems() in model.go to build three-level item list respecting category grouping. Store category in Item struct. Add ItemTypeCategory. Handle expand/collapse for category nodes.",
       "status": "completed"
+    },
+    {
+      "id": "task-19",
+      "description": "Add category assignment feature to TUI with [c] keyboard shortcut. Currently projects can have a category field set in config, but there's no TUI interface to assign/change categories. Implement a flow where pressing 'c' when a project is selected shows a text input to enter a category name. If the category doesn't exist in config.Categories, add it automatically using config.AddCategory(). After input, call project.SetCategory() and config.SaveConfig() to persist. Show error messages if save fails.",
+      "status": "todo"
+    },
+    {
+      "id": "task-20",
+      "description": "Add tag assignment feature to TUI with [t] keyboard shortcut. Currently projects can have tags that are displayed in the TUI (shown with tagStyle in brackets), but there's no TUI interface to add/remove tags. Implement a flow where pressing 't' when a project is selected shows a text input to enter comma-separated tag names. Parse the input and call project.AddTags() for each tag, then config.SaveConfig() to persist. The config already has AddTags, RemoveTags, and GetAllTags methods. Show error messages if save fails.",
+      "status": "todo"
+    },
+    {
+      "id": "task-21",
+      "description": "Add open config file feature to TUI with keyboard shortcut. Implement a flow where pressing a designated key (suggest 'e' for edit or 'C' for Config) opens the wt config file in VS Code. Use config.GetConfigPath() to get the file path (typically ~/.config/wt/config.yaml), then call vscode.OpenInVSCode() with the config file path. This allows users to quickly edit configuration without leaving the TUI workflow. Show error messages if config path cannot be determined or VS Code fails to open.",
+      "status": "todo"
     }
   ]
 }
