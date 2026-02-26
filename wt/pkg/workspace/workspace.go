@@ -199,3 +199,141 @@ func CreateWorkspaceFile(targetPath string) error {
 	
 	return nil
 }
+
+// IsWorktree checks if the given path is a worktree (not the primary repository).
+// Returns true if it's a worktree, false if it's the primary or not a git repo.
+func IsWorktree(path string) bool {
+	cmd := exec.Command("git", "rev-parse", "--git-dir")
+	cmd.Dir = path
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false
+	}
+	
+	gitDir := strings.TrimSpace(string(output))
+	// Worktrees have .git as a file (containing path to actual git dir)
+	// Primary repo has .git as a directory
+	return !strings.HasSuffix(gitDir, ".git")
+}
+
+// GetWorkspaceFilePath returns the expected workspace file path for a given directory.
+func GetWorkspaceFilePath(targetPath string) (string, error) {
+	primaryPath, err := GetPrimaryProjectPath(targetPath)
+	if err != nil {
+		primaryPath = targetPath
+	}
+	
+	baseName := filepath.Base(primaryPath)
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
+	return filepath.Join(targetPath, workspaceFileName), nil
+}
+
+// CopyWorkspaceFile copies a workspace file from the primary project to a worktree.
+func CopyWorkspaceFile(primaryPath, worktreePath string) error {
+	// Get source workspace file from primary
+	srcPath, err := GetWorkspaceFilePath(primaryPath)
+	if err != nil {
+		return fmt.Errorf("failed to get primary workspace path: %w", err)
+	}
+	
+	// Check if source exists
+	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
+		return fmt.Errorf("workspace file does not exist in primary: %s", srcPath)
+	}
+	
+	// Get destination workspace file path
+	dstPath, err := GetWorkspaceFilePath(worktreePath)
+	if err != nil {
+		return fmt.Errorf("failed to get worktree workspace path: %w", err)
+	}
+	
+	// Read source file
+	data, err := os.ReadFile(srcPath)
+	if err != nil {
+		return fmt.Errorf("failed to read workspace file: %w", err)
+	}
+	
+	// Write to destination
+	if err := os.WriteFile(dstPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write workspace file: %w", err)
+	}
+	
+	return nil
+}
+
+// CreateOrCopyWorkspaceFile creates or copies a workspace file based on context:
+// - For primary branch: creates file if it doesn't exist, skips if it does
+// - For worktrees: copies from primary if one exists, otherwise creates new, skips if already exists
+func CreateOrCopyWorkspaceFile(targetPath string) error {
+	// Check if workspace file already exists
+	if WorkspaceFileExists(targetPath) {
+		// File exists, skip
+		return nil
+	}
+	
+	// Check if this is a worktree
+	if IsWorktree(targetPath) {
+		// Try to get primary path and copy from it
+		primaryPath, err := GetPrimaryProjectPath(targetPath)
+		if err == nil && primaryPath != targetPath {
+			// Check if primary has a workspace file
+			if WorkspaceFileExists(primaryPath) {
+				// Copy from primary
+				return CopyWorkspaceFile(primaryPath, targetPath)
+			}
+		}
+		// Primary doesn't have a workspace file, create new one
+	}
+	
+	// For primary branch or when primary has no workspace file, create new
+	return createWorkspaceFileInternal(targetPath)
+}
+
+// createWorkspaceFileInternal creates a new workspace file (internal use).
+func createWorkspaceFileInternal(targetPath string) error {
+	// Get the primary project path for consistent coloring
+	primaryPath, err := GetPrimaryProjectPath(targetPath)
+	if err != nil {
+		primaryPath = targetPath
+	}
+	
+	// Get the base name for the workspace file
+	baseName := filepath.Base(primaryPath)
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
+	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
+	
+	// Generate color based on primary path
+	baseColor := GenerateColorFromPath(primaryPath)
+	foregroundColor := GetContrastingForeground(baseColor)
+	inactiveColor := AdjustColorBrightness(baseColor, -15) // Slightly darker for inactive
+	
+	// Create workspace structure
+	workspace := WorkspaceFile{
+		Folders: []WorkspaceFolder{
+			{Path: "."},
+		},
+		Settings: map[string]interface{}{
+			"workbench.colorCustomizations": map[string]string{
+				"statusBar.background":        "#" + baseColor,
+				"statusBar.foreground":        foregroundColor,
+				"titleBar.activeBackground":   "#" + baseColor,
+				"titleBar.activeForeground":   foregroundColor,
+				"titleBar.inactiveBackground": "#" + inactiveColor,
+			},
+		},
+	}
+	
+	// Marshal to JSON with indentation
+	data, err := json.MarshalIndent(workspace, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal workspace file: %w", err)
+	}
+	
+	// Write to file
+	if err := os.WriteFile(workspaceFilePath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write workspace file: %w", err)
+	}
+	
+	return nil
+}

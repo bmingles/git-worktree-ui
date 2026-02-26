@@ -1279,7 +1279,7 @@ func (m Model) createWorkspaceFile() tea.Cmd {
 	}
 	
 	return func() tea.Msg {
-		if err := workspace.CreateWorkspaceFile(targetPath); err != nil {
+		if err := workspace.CreateOrCopyWorkspaceFile(targetPath); err != nil {
 			return worktreeErrorMsg{err: fmt.Errorf("failed to create workspace file: %w", err)}
 		}
 		

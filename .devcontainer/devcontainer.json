@@ -28,7 +28,7 @@
   "mounts": [
     // Bind-mount skills from host into project directory for easier debugging of skills.
     // Can remove the `readonly` setting if you want to edit them from the container
-    "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.agents/skills,type=bind,consistency=cached,readonly",
+    "source=${localEnv:HOME}/.claude/skills,target=${containerWorkspaceFolder}/.agents/skills,type=bind,consistency=cached,readonly",
     // Persist Go module cache across container rebuilds
     "source=vscode-dashboard-gomodcache,target=/go/pkg/mod,type=volume"
   ],
