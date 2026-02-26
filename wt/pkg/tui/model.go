@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/bmingles/wt/pkg/config"
 	"github.com/bmingles/wt/pkg/vscode"
+	"github.com/bmingles/wt/pkg/workspace"
 	"github.com/bmingles/wt/pkg/worktree"
 )
 
@@ -572,6 +573,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+	case workspaceCreatedMsg:
+		// Workspace file created successfully, clear any previous errors
+		m.err = nil
+		return m, nil
 	}
 	
 	return m, nil
@@ -774,6 +779,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+	
+	case "v":
+		// Create workspace file for selected item
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			return m, m.createWorkspaceFile()
+		}
+		return m, nil
 	
 	case "e":
 		// Open config file in VS Code
@@ -1144,6 +1156,11 @@ type tagsAssignedMsg struct {
 	tags        []string
 }
 
+// workspaceCreatedMsg is sent when a workspace file is successfully created.
+type workspaceCreatedMsg struct {
+	workspacePath string
+}
+
 // openInVSCode opens the selected item (project or worktree) in VS Code.
 func (m Model) openInVSCode() tea.Cmd {
 	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
@@ -1236,6 +1253,37 @@ func (m Model) deleteWorktree(projectPath, worktreePath string) tea.Cmd {
 		}
 		
 		return worktreeDeletedMsg{projectPath: projectPath}
+	}
+}
+
+// createWorkspaceFile creates a workspace file for the selected item.
+func (m Model) createWorkspaceFile() tea.Cmd {
+	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
+		return nil
+	}
+	
+	item := m.items[m.selectedIndex]
+	
+	// Determine the target path based on item type
+	var targetPath string
+	switch item.Type {
+	case ItemTypeProject:
+		targetPath = item.ProjectPath
+	case ItemTypeWorktree:
+		if item.Worktree == nil {
+			return nil
+		}
+		targetPath = item.Worktree.Path
+	default:
+		return nil
+	}
+	
+	return func() tea.Msg {
+		if err := workspace.CreateWorkspaceFile(targetPath); err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to create workspace file: %w", err)}
+		}
+		
+		return workspaceCreatedMsg{workspacePath: targetPath}
 	}
 }
 

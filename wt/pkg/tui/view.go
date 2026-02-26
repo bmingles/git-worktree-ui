@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/bmingles/wt/pkg/workspace"
 )
 
 var (
@@ -428,21 +429,50 @@ func (m Model) renderHelp() string {
 			}
 		case ItemTypeProject:
 			// Project: worktree-level, project-level, and global
-			rows = []string{
-				"[a] add worktree",
-				"[n] new project • [c] assign category • [t] assign tags",
-			}
-		case ItemTypeWorktree:
-			// Worktree: worktree-level (with delete if non-primary), project-level, and global
-			if item.Worktree != nil && !item.Worktree.IsPrimary {
+			// Check if workspace file already exists
+			hasWorkspace := workspace.WorkspaceFileExists(item.ProjectPath)
+			if hasWorkspace {
 				rows = []string{
-					"[a] add worktree • [d] delete worktree",
+					"[a] add worktree",
 					"[n] new project • [c] assign category • [t] assign tags",
 				}
 			} else {
 				rows = []string{
-					"[a] add worktree",
+					"[a] add worktree • [v] local.code-workspace",
 					"[n] new project • [c] assign category • [t] assign tags",
+				}
+			}
+		case ItemTypeWorktree:
+			// Worktree: worktree-level (with delete if non-primary), project-level, and global
+			// Check if workspace file already exists
+			var hasWorkspace bool
+			if item.Worktree != nil {
+				hasWorkspace = workspace.WorkspaceFileExists(item.Worktree.Path)
+			}
+			
+			if item.Worktree != nil && !item.Worktree.IsPrimary {
+				if hasWorkspace {
+					rows = []string{
+						"[a] add worktree • [d] delete worktree",
+						"[n] new project • [c] assign category • [t] assign tags",
+					}
+				} else {
+					rows = []string{
+						"[a] add worktree • [d] delete worktree • [v] local.code-workspace",
+						"[n] new project • [c] assign category • [t] assign tags",
+					}
+				}
+			} else {
+				if hasWorkspace {
+					rows = []string{
+						"[a] add worktree",
+						"[n] new project • [c] assign category • [t] assign tags",
+					}
+				} else {
+					rows = []string{
+						"[a] add worktree • [v] local.code-workspace",
+						"[n] new project • [c] assign category • [t] assign tags",
+					}
 				}
 			}
 		}

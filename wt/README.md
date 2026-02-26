@@ -7,6 +7,7 @@ A command-line tool for managing Git worktrees with an interactive TUI interface
 - **Interactive TUI**: Navigate through your projects and worktrees with an intuitive interface
 - **Quick VS Code Integration**: Open any worktree in VS Code with a single keystroke
 - **Worktree Management**: Create and delete worktrees directly from the TUI
+- **Workspace File Generation**: Add color-coded `.local.code-workspace` files to projects and worktrees
 - **Git Status Display**: View branch status, changes, and commit position at a glance
 - **Configuration Management**: Simple YAML-based configuration for multiple projects
 - **Keyboard-Driven**: Efficient keyboard navigation for fast workflow
@@ -109,6 +110,12 @@ wt config list [--config <path>]
 ### Actions
 
 - **Enter / o**: Open selected worktree in VS Code
+- **v**: Create a `.local.code-workspace` file for the selected project or worktree
+  - Generates workspace file with unique color customization
+  - Colors are based on MD5 hash of the primary project path for consistency
+  - Foreground colors automatically adjust for optimal contrast
+  - Worktrees use the same color as their primary project
+  - Hidden if workspace file already exists
 - **c**: Create new worktree for the selected project
   - Enter branch name and press Enter to create
   - Press Esc to cancel
