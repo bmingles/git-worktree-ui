@@ -43,6 +43,38 @@ func TestHasDevcontainer(t *testing.T) {
 	})
 }
 
+func TestCopyTemplateFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	if err := copyTemplateFiles(tmpDir); err != nil {
+		t.Fatalf("copyTemplateFiles() error = %v", err)
+	}
+
+	devcontainerDir := filepath.Join(tmpDir, ".devcontainer")
+
+	scripts := []string{"setup.sh", "setup-bash.sh", "setup-agents.sh"}
+	for _, script := range scripts {
+		path := filepath.Join(devcontainerDir, script)
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Errorf("expected script %s to exist: %v", script, err)
+			continue
+		}
+		if info.Mode().Perm()&0755 != 0755 {
+			t.Errorf("script %s has permissions %v, expected 0755", script, info.Mode().Perm())
+		}
+	}
+
+	gitignore := filepath.Join(devcontainerDir, ".gitignore")
+	data, err := os.ReadFile(gitignore)
+	if err != nil {
+		t.Fatalf("expected .gitignore to exist: %v", err)
+	}
+	if string(data) != "*\n" {
+		t.Errorf(".gitignore content = %q, expected %q", string(data), "*\n")
+	}
+}
+
 func TestGetPrimaryDevcontainerPath(t *testing.T) {
 	t.Run("non-git directory without .devcontainer", func(t *testing.T) {
 		tmpDir := t.TempDir()

@@ -1,10 +1,10 @@
 {
   "id": "task-02",
   "description": "Implement function to copy template files to .devcontainer folder - Create copyTemplateFiles(targetPath string) error in devcontainer.go that copies setup.sh, setup-bash.sh, setup-agents.sh from .devcontainer folder of this project to targetPath/.devcontainer/. Also create .gitignore with '*' content to exclude everything in .devcontainer from git.",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-27T18:37:58",
-  "updated": "2026-02-27T18:37:58",
-  "note": null,
+  "updated": "2026-02-27T18:53:54",
+  "note": "Implemented copyTemplateFiles in devcontainer.go using Go embed to bundle setup.sh, setup-bash.sh, setup-agents.sh from a templates/ subdirectory. Function creates .devcontainer dir, copies scripts with 0755 permissions, and writes .gitignore with '*' content. All tests pass.",
   "context": {
     "files": [
       "wt/pkg/devcontainer/devcontainer.go",
@@ -28,5 +28,5 @@
   "depends_on": [
     "task-01"
   ],
-  "claimed_by": null
+  "claimed_by": "run_task_loop_3737"
 }

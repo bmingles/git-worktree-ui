@@ -1,12 +1,17 @@
 package devcontainer
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/bmingles/wt/pkg/workspace"
 )
+
+//go:embed templates/setup.sh templates/setup-bash.sh templates/setup-agents.sh
+var templateFiles embed.FS
 
 // HasDevcontainer checks if a .devcontainer folder exists in the given path.
 func HasDevcontainer(path string) bool {
@@ -32,6 +37,34 @@ func GetPrimaryDevcontainerPath(path string) (string, error) {
 	}
 
 	return devcontainerPath, nil
+}
+
+// copyTemplateFiles copies the setup scripts from embedded templates to targetPath/.devcontainer/
+// and creates a .gitignore that excludes everything in that directory.
+func copyTemplateFiles(targetPath string) error {
+	devcontainerDir := filepath.Join(targetPath, ".devcontainer")
+	if err := os.MkdirAll(devcontainerDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .devcontainer directory: %w", err)
+	}
+
+	scripts := []string{"setup.sh", "setup-bash.sh", "setup-agents.sh"}
+	for _, script := range scripts {
+		data, err := fs.ReadFile(templateFiles, "templates/"+script)
+		if err != nil {
+			return fmt.Errorf("failed to read template %s: %w", script, err)
+		}
+		dst := filepath.Join(devcontainerDir, script)
+		if err := os.WriteFile(dst, data, 0755); err != nil {
+			return fmt.Errorf("failed to write %s: %w", script, err)
+		}
+	}
+
+	gitignore := filepath.Join(devcontainerDir, ".gitignore")
+	if err := os.WriteFile(gitignore, []byte("*\n"), 0644); err != nil {
+		return fmt.Errorf("failed to write .gitignore: %w", err)
+	}
+
+	return nil
 }
 
 // CreateDevcontainer creates a .devcontainer folder in the specified directory.
