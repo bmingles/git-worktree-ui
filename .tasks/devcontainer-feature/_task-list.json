@@ -15,7 +15,7 @@
     {
       "id": "task-03",
       "description": "Create function to generate devcontainer.json with conditional worktree bind-mount and color customization - Implement generateDevcontainerJSON(targetPath string) error that creates devcontainer.json. Use the template from _ignore/DESIGN.md. For worktrees, replace the placeholder '<PLACEHOLDER-FOR-WORKTREE-GIT-FOLDER>' with actual bind mount: 'source=${localWorkspaceFolder}/../../<primary-project-name>/.git,target=${localWorkspaceFolder}/../../<primary-project-name>/.git,type=bind,consistency=cached'. For primary branches, remove that line entirely. Use workspace.IsWorktree and workspace.GetPrimaryProjectPath to determine context. For workbench.colorCustomizations, reuse workspace.GenerateColorFromPath, workspace.GetContrastingForeground, and workspace.AdjustColorBrightness to generate the same color scheme as local.code-workspace files.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-04",
