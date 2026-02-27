@@ -20,7 +20,7 @@
     {
       "id": "task-04",
       "description": "Complete CreateDevcontainer main function - Implement the CreateDevcontainer(targetPath string) error function that orchestrates: 1) Check if .devcontainer already exists (skip if yes), 2) For worktrees with primary having .devcontainer, copy entire folder from primary, 3) Otherwise create new: call copyTemplateFiles then generateDevcontainerJSON. Return descriptive errors for each failure case.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-05",

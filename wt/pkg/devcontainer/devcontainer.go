@@ -162,9 +162,69 @@ func generateDevcontainerJSON(targetPath string) error {
 	return nil
 }
 
-// CreateDevcontainer creates a .devcontainer folder in the specified directory
-// with setup scripts and a generated devcontainer.json.
+// copyDevcontainerFolder copies all files from srcDir into targetPath/.devcontainer/.
+func copyDevcontainerFolder(srcDir, targetPath string) error {
+	dstDir := filepath.Join(targetPath, ".devcontainer")
+	if err := os.MkdirAll(dstDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .devcontainer directory: %w", err)
+	}
+
+	return filepath.Walk(srcDir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return fmt.Errorf("failed to compute relative path: %w", err)
+		}
+
+		dstPath := filepath.Join(dstDir, relPath)
+
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, info.Mode())
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", path, err)
+		}
+
+		if err := os.WriteFile(dstPath, data, info.Mode()); err != nil {
+			return fmt.Errorf("failed to write %s: %w", dstPath, err)
+		}
+
+		return nil
+	})
+}
+
+// CreateDevcontainer creates a .devcontainer folder in the specified directory.
+// It is idempotent: returns nil if .devcontainer already exists.
+// For worktrees whose primary project has a .devcontainer, the folder is copied from primary.
+// Otherwise, template files and a generated devcontainer.json are created.
 func CreateDevcontainer(path string) error {
+	// Idempotent: skip if .devcontainer already exists
+	if HasDevcontainer(path) {
+		return nil
+	}
+
+	// For worktrees, try to copy from primary if primary has .devcontainer
+	if workspace.IsWorktree(path) {
+		primaryPath, err := workspace.GetPrimaryProjectPath(path)
+		if err != nil {
+			return fmt.Errorf("failed to get primary project path: %w", err)
+		}
+
+		if HasDevcontainer(primaryPath) {
+			primaryDevcontainerPath := filepath.Join(primaryPath, ".devcontainer")
+			if err := copyDevcontainerFolder(primaryDevcontainerPath, path); err != nil {
+				return fmt.Errorf("failed to copy .devcontainer from primary project: %w", err)
+			}
+			return nil
+		}
+	}
+
+	// Create new .devcontainer with template files and generated devcontainer.json
 	if err := copyTemplateFiles(path); err != nil {
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
