@@ -1,0 +1,35 @@
+{
+  "id": "task-07",
+  "description": "End-to-end testing of devcontainer feature - Test the complete feature: 1) Test on primary branch - verify .devcontainer created with all files and no .git bind-mount, 2) Test on worktree with primary having .devcontainer - verify folder is copied, 3) Test on worktree without primary .devcontainer - verify new folder created with .git bind-mount pointing to correct primary path, 4) Verify command disappears after .devcontainer exists, 5) Test that 'i' key is ignored when .devcontainer already exists, 6) Verify workbench.colorCustomizations in devcontainer.json matches the colors in local.code-workspace file for the same project (both should use the same primary path for color generation).",
+  "status": "todo",
+  "created": "2026-02-27T18:38:49",
+  "updated": "2026-02-27T18:43:20",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/tui/model.go",
+      "wt/pkg/tui/view.go",
+      "wt/pkg/devcontainer/devcontainer.go",
+      "test-ws/project-a/README.md",
+      "test-ws/project-a.worktrees/foo/README.md"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "Primary branch test passes - .devcontainer created without .git mount",
+    "Worktree copy test passes - existing primary .devcontainer is copied",
+    "Worktree new test passes - .devcontainer created with correct .git mount path",
+    "UI correctly hides command after .devcontainer exists",
+    "Idempotency verified - repeated 'i' presses don't create duplicates or errors",
+    "Color customizations in devcontainer.json match workspace file colors (same base color from primary path)"
+  ],
+  "verification": {
+    "type": "instruction",
+    "value": "Manually test all scenarios in test-ws directory and verify devcontainer.json contents"
+  },
+  "depends_on": [
+    "task-06"
+  ],
+  "claimed_by": null
+}

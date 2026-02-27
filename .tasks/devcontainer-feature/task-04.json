@@ -1,0 +1,31 @@
+{
+  "id": "task-04",
+  "description": "Complete CreateDevcontainer main function - Implement the CreateDevcontainer(targetPath string) error function that orchestrates: 1) Check if .devcontainer already exists (skip if yes), 2) For worktrees with primary having .devcontainer, copy entire folder from primary, 3) Otherwise create new: call copyTemplateFiles then generateDevcontainerJSON. Return descriptive errors for each failure case.",
+  "status": "todo",
+  "created": "2026-02-27T18:38:17",
+  "updated": "2026-02-27T18:38:17",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/devcontainer/devcontainer.go",
+      "wt/pkg/workspace/workspace.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "CreateDevcontainer returns nil if .devcontainer already exists (idempotent)",
+    "For worktrees, copies primary's .devcontainer if it exists",
+    "For worktrees without primary .devcontainer or primary branches, creates new folder with all files",
+    "Function returns clear error messages for each failure scenario"
+  ],
+  "verification": {
+    "type": "command",
+    "value": "go test ./wt/pkg/devcontainer/... -run TestCreateDevcontainer"
+  },
+  "depends_on": [
+    "task-02",
+    "task-03"
+  ],
+  "claimed_by": null
+}

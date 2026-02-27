@@ -1,0 +1,26 @@
+{
+  "id": "task-01",
+  "description": "Create devcontainer package with core helper functions - Currently no devcontainer package exists. Create wt/pkg/devcontainer/devcontainer.go with functions: HasDevcontainer(path string) bool to check if .devcontainer folder exists, GetPrimaryDevcontainerPath(path string) (string, error) to get primary project's .devcontainer path for copying, and scaffolding for CreateDevcontainer(path string) error that will be implemented in later tasks.",
+  "status": "todo",
+  "created": "2026-02-27T18:37:50",
+  "updated": "2026-02-27T18:37:50",
+  "note": null,
+  "context": {
+    "files": [
+      "wt/pkg/workspace/workspace.go"
+    ],
+    "docs": [],
+    "skills": []
+  },
+  "acceptance_criteria": [
+    "New file wt/pkg/devcontainer/devcontainer.go exists with proper package declaration",
+    "HasDevcontainer function implemented and tested",
+    "GetPrimaryDevcontainerPath function reuses workspace.GetPrimaryProjectPath logic"
+  ],
+  "verification": {
+    "type": "command",
+    "value": "test -f wt/pkg/devcontainer/devcontainer.go && go test ./wt/pkg/devcontainer/..."
+  },
+  "depends_on": [],
+  "claimed_by": null
+}
