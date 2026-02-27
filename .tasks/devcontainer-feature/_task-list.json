@@ -35,7 +35,7 @@
     {
       "id": "task-07",
       "description": "End-to-end testing of devcontainer feature - Test the complete feature: 1) Test on primary branch - verify .devcontainer created with all files and no .git bind-mount, 2) Test on worktree with primary having .devcontainer - verify folder is copied, 3) Test on worktree without primary .devcontainer - verify new folder created with .git bind-mount pointing to correct primary path, 4) Verify command disappears after .devcontainer exists, 5) Test that 'i' key is ignored when .devcontainer already exists, 6) Verify workbench.colorCustomizations in devcontainer.json matches the colors in local.code-workspace file for the same project (both should use the same primary path for color generation).",
-      "status": "todo"
+      "status": "completed"
     }
   ]
 }

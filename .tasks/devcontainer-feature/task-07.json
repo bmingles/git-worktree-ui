@@ -1,10 +1,10 @@
 {
   "id": "task-07",
   "description": "End-to-end testing of devcontainer feature - Test the complete feature: 1) Test on primary branch - verify .devcontainer created with all files and no .git bind-mount, 2) Test on worktree with primary having .devcontainer - verify folder is copied, 3) Test on worktree without primary .devcontainer - verify new folder created with .git bind-mount pointing to correct primary path, 4) Verify command disappears after .devcontainer exists, 5) Test that 'i' key is ignored when .devcontainer already exists, 6) Verify workbench.colorCustomizations in devcontainer.json matches the colors in local.code-workspace file for the same project (both should use the same primary path for color generation).",
-  "status": "todo",
+  "status": "completed",
   "created": "2026-02-27T18:38:49",
-  "updated": "2026-02-27T18:43:20",
-  "note": null,
+  "updated": "2026-02-27T19:03:32",
+  "note": "Created e2e_test.go with 7 automated end-to-end tests covering all acceptance criteria: primary branch creates .devcontainer without .git mount, worktree copies from primary when it has .devcontainer, worktree without primary .devcontainer creates new with correct .git bind-mount, idempotency verified, UI command visibility via HasDevcontainer, and color customizations in devcontainer.json match workspace file colors. All 7 e2e tests and full suite pass.",
   "context": {
     "files": [
       "wt/pkg/tui/model.go",
@@ -31,5 +31,5 @@
   "depends_on": [
     "task-06"
   ],
-  "claimed_by": null
+  "claimed_by": "run_task_loop_3737"
 }
