@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/bmingles/wt/pkg/devcontainer"
 	"github.com/bmingles/wt/pkg/workspace"
 )
 
@@ -429,50 +430,62 @@ func (m Model) renderHelp() string {
 			}
 		case ItemTypeProject:
 			// Project: worktree-level, project-level, and global
-			// Check if workspace file already exists
+			// Check if workspace file and devcontainer already exist
 			hasWorkspace := workspace.WorkspaceFileExists(item.ProjectPath)
-			if hasWorkspace {
-				rows = []string{
-					"[a] add worktree",
-					"[n] new project • [c] assign category • [t] assign tags",
-				}
+			hasDevcontainer := devcontainer.HasDevcontainer(item.ProjectPath)
+			var firstRow string
+			if hasWorkspace && hasDevcontainer {
+				firstRow = "[a] add worktree"
+			} else if hasWorkspace {
+				firstRow = "[a] add worktree • [i] devcontainer"
+			} else if hasDevcontainer {
+				firstRow = "[a] add worktree • [v] local.code-workspace"
 			} else {
-				rows = []string{
-					"[a] add worktree • [v] local.code-workspace",
-					"[n] new project • [c] assign category • [t] assign tags",
-				}
+				firstRow = "[a] add worktree • [v] local.code-workspace • [i] devcontainer"
+			}
+			rows = []string{
+				firstRow,
+				"[n] new project • [c] assign category • [t] assign tags",
 			}
 		case ItemTypeWorktree:
 			// Worktree: worktree-level (with delete if non-primary), project-level, and global
-			// Check if workspace file already exists
+			// Check if workspace file and devcontainer already exist
 			var hasWorkspace bool
+			var hasDevcontainer bool
 			if item.Worktree != nil {
 				hasWorkspace = workspace.WorkspaceFileExists(item.Worktree.Path)
+				hasDevcontainer = devcontainer.HasDevcontainer(item.Worktree.Path)
 			}
-			
+
 			if item.Worktree != nil && !item.Worktree.IsPrimary {
-				if hasWorkspace {
-					rows = []string{
-						"[a] add worktree • [d] delete worktree",
-						"[n] new project • [c] assign category • [t] assign tags",
-					}
+				var firstRow string
+				if hasWorkspace && hasDevcontainer {
+					firstRow = "[a] add worktree • [d] delete worktree"
+				} else if hasWorkspace {
+					firstRow = "[a] add worktree • [d] delete worktree • [i] devcontainer"
+				} else if hasDevcontainer {
+					firstRow = "[a] add worktree • [d] delete worktree • [v] local.code-workspace"
 				} else {
-					rows = []string{
-						"[a] add worktree • [d] delete worktree • [v] local.code-workspace",
-						"[n] new project • [c] assign category • [t] assign tags",
-					}
+					firstRow = "[a] add worktree • [d] delete worktree • [v] local.code-workspace • [i] devcontainer"
+				}
+				rows = []string{
+					firstRow,
+					"[n] new project • [c] assign category • [t] assign tags",
 				}
 			} else {
-				if hasWorkspace {
-					rows = []string{
-						"[a] add worktree",
-						"[n] new project • [c] assign category • [t] assign tags",
-					}
+				var firstRow string
+				if hasWorkspace && hasDevcontainer {
+					firstRow = "[a] add worktree"
+				} else if hasWorkspace {
+					firstRow = "[a] add worktree • [i] devcontainer"
+				} else if hasDevcontainer {
+					firstRow = "[a] add worktree • [v] local.code-workspace"
 				} else {
-					rows = []string{
-						"[a] add worktree • [v] local.code-workspace",
-						"[n] new project • [c] assign category • [t] assign tags",
-					}
+					firstRow = "[a] add worktree • [v] local.code-workspace • [i] devcontainer"
+				}
+				rows = []string{
+					firstRow,
+					"[n] new project • [c] assign category • [t] assign tags",
 				}
 			}
 		}

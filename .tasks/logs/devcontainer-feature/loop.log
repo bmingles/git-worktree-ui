@@ -51,3 +51,15 @@
 [run_task_loop] Running claude agent...
 [run_task_loop] Task task-04 status after agent: completed
 [run_task_loop] Committing changes for task-04...
+[main 510688d] devcontainer-feature/task-04: Complete CreateDevcontainer main function - Implement the CreateDevcontainer(targetPath string) error function that orchestrates: 1) Check if .devcontainer already exists (skip if yes), 2) For worktrees with primary having .devcontainer, copy entire folder from primary, 3) Otherwise create new: call copyTemplateFiles then generateDevcontainerJSON. Return descriptive errors for each failure case.
+ 7 files changed, 303 insertions(+), 7 deletions(-)
+ create mode 100644 .tasks/logs/devcontainer-feature/task-04_agent.log
+[run_task_loop] Committed: devcontainer-feature/task-04: Complete CreateDevcontainer main function - Implement the CreateDevcontainer(targetPath string) error function that orchestrates: 1) Check if .devcontainer already exists (skip if yes), 2) For worktrees with primary having .devcontainer, copy entire folder from primary, 3) Otherwise create new: call copyTemplateFiles then generateDevcontainerJSON. Return descriptive errors for each failure case.
+[run_task_loop] Task task-04 complete. (4/7)
+[run_task_loop] ---
+[run_task_loop] Iteration 5 of 7
+[run_task_loop] Claimed task: task-05 — Add devcontainer command to TUI view help text - In wt/pkg/tui/view.go around line 430-480, add '[i] devcontainer' command to the help text. Show this command only when .devcontainer folder does NOT exist (similar to how '[v] local.code-workspace' is conditionally shown). Use devcontainer.HasDevcontainer to check. Add to both ItemTypeProject and ItemTypeWorktree cases.
+[run_task_loop] Agent log: /workspaces/vscode-dashboard/.tasks/logs/devcontainer-feature/task-05_agent.log
+[run_task_loop] Running claude agent...
+[run_task_loop] Task task-05 status after agent: completed
+[run_task_loop] Committing changes for task-05...

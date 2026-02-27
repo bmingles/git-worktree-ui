@@ -25,7 +25,7 @@
     {
       "id": "task-05",
       "description": "Add devcontainer command to TUI view help text - In wt/pkg/tui/view.go around line 430-480, add '[i] devcontainer' command to the help text. Show this command only when .devcontainer folder does NOT exist (similar to how '[v] local.code-workspace' is conditionally shown). Use devcontainer.HasDevcontainer to check. Add to both ItemTypeProject and ItemTypeWorktree cases.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-06",
