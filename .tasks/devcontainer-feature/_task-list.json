@@ -5,7 +5,7 @@
     {
       "id": "task-01",
       "description": "Create devcontainer package with core helper functions - Currently no devcontainer package exists. Create wt/pkg/devcontainer/devcontainer.go with functions: HasDevcontainer(path string) bool to check if .devcontainer folder exists, GetPrimaryDevcontainerPath(path string) (string, error) to get primary project's .devcontainer path for copying, and scaffolding for CreateDevcontainer(path string) error that will be implemented in later tasks.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-02",

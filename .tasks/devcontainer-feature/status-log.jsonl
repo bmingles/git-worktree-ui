@@ -1,0 +1,1 @@
+{"id":"task-01","status":"completed","timestamp":"2026-02-27T18:51:31","note":"Created wt/pkg/devcontainer/devcontainer.go with HasDevcontainer (checks for .devcontainer dir), GetPrimaryDevcontainerPath (reuses workspace.GetPrimaryProjectPath), and CreateDevcontainer scaffold. Added devcontainer_test.go with tests for both implemented functions."}
