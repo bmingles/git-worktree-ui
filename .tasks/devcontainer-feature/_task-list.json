@@ -30,7 +30,7 @@
     {
       "id": "task-06",
       "description": "Add 'i' key handler in TUI model for devcontainer creation - In wt/pkg/tui/model.go Update function around line 780-790 (where 'v' key creates workspace file), add case for 'i' key to call createDevcontainer(). Model this after the createWorkspaceFile pattern around line 1260. Implement createDevcontainer() tea.Cmd that calls devcontainer.CreateDevcontainer and returns success/error messages. Add devcontainerCreatedMsg and handle it in Update to refresh the view.",
-      "status": "todo"
+      "status": "completed"
     },
     {
       "id": "task-07",

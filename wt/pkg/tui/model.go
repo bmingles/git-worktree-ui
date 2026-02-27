@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/bmingles/wt/pkg/config"
+	"github.com/bmingles/wt/pkg/devcontainer"
 	"github.com/bmingles/wt/pkg/vscode"
 	"github.com/bmingles/wt/pkg/workspace"
 	"github.com/bmingles/wt/pkg/worktree"
@@ -577,6 +578,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Workspace file created successfully, clear any previous errors
 		m.err = nil
 		return m, nil
+	case devcontainerCreatedMsg:
+		// Devcontainer created successfully, clear any previous errors
+		m.err = nil
+		return m, nil
 	}
 	
 	return m, nil
@@ -786,7 +791,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.createWorkspaceFile()
 		}
 		return m, nil
-	
+
+	case "i":
+		// Create devcontainer for selected item
+		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+			return m, m.createDevcontainer()
+		}
+		return m, nil
+
 	case "e":
 		// Open config file in VS Code
 		return m, m.openConfigInVSCode()
@@ -1161,6 +1173,11 @@ type workspaceCreatedMsg struct {
 	workspacePath string
 }
 
+// devcontainerCreatedMsg is sent when a .devcontainer folder is successfully created.
+type devcontainerCreatedMsg struct {
+	targetPath string
+}
+
 // openInVSCode opens the selected item (project or worktree) in VS Code.
 func (m Model) openInVSCode() tea.Cmd {
 	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
@@ -1284,6 +1301,37 @@ func (m Model) createWorkspaceFile() tea.Cmd {
 		}
 		
 		return workspaceCreatedMsg{workspacePath: targetPath}
+	}
+}
+
+// createDevcontainer creates a .devcontainer folder for the selected item.
+func (m Model) createDevcontainer() tea.Cmd {
+	if m.selectedIndex < 0 || m.selectedIndex >= len(m.items) {
+		return nil
+	}
+
+	item := m.items[m.selectedIndex]
+
+	// Determine the target path based on item type
+	var targetPath string
+	switch item.Type {
+	case ItemTypeProject:
+		targetPath = item.ProjectPath
+	case ItemTypeWorktree:
+		if item.Worktree == nil {
+			return nil
+		}
+		targetPath = item.Worktree.Path
+	default:
+		return nil
+	}
+
+	return func() tea.Msg {
+		if err := devcontainer.CreateDevcontainer(targetPath); err != nil {
+			return worktreeErrorMsg{err: fmt.Errorf("failed to create devcontainer: %w", err)}
+		}
+
+		return devcontainerCreatedMsg{targetPath: targetPath}
 	}
 }
 
