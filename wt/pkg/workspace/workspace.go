@@ -128,22 +128,36 @@ func GetPrimaryProjectPath(path string) (string, error) {
 	return path, nil
 }
 
-// WorkspaceFileExists checks if a workspace file already exists for the given path.
+// WorkspaceFileExists checks if any .code-workspace file exists in the given path.
+// It first checks for the standard .local.code-workspace file, then any other .code-workspace file.
 func WorkspaceFileExists(targetPath string) bool {
-	// Get the primary project path for consistent naming
+	// First check for the standard .local.code-workspace file
 	primaryPath, err := GetPrimaryProjectPath(targetPath)
 	if err != nil {
 		primaryPath = targetPath
 	}
 	
-	// Get the base name for the workspace file
 	baseName := filepath.Base(primaryPath)
 	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
 	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
 	
-	// Check if file exists
-	_, err = os.Stat(workspaceFilePath)
-	return err == nil
+	if _, err := os.Stat(workspaceFilePath); err == nil {
+		return true
+	}
+	
+	// Check for any other .code-workspace file
+	entries, err := os.ReadDir(targetPath)
+	if err != nil {
+		return false
+	}
+	
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".code-workspace") {
+			return true
+		}
+	}
+	
+	return false
 }
 
 // CreateWorkspaceFile creates a .code-workspace file in the specified directory

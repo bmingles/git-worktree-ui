@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/bmingles/wt/pkg/workspace"
 )
 
 // OpenInVSCode opens the specified worktree path in VS Code.
-// It first checks for .code-workspace files in the directory.
+// It first checks for a .local.code-workspace file in the directory.
 // If found, it opens the workspace file; otherwise, it opens the directory.
 // It uses the 'code' command which should be available in PATH.
 // Returns an error if VS Code is not installed or the command fails.
@@ -43,14 +45,24 @@ func OpenInVSCode(worktreePath string) error {
 	return nil
 }
 
-// resolveTargetPath checks if a .code-workspace file exists in the directory.
-// If one or more workspace files exist, it returns the path to the first one alphabetically.
-// If none exist, it returns the original directory path.
+// resolveTargetPath checks for .code-workspace files in the given directory.
+// It prefers .local.code-workspace if it exists, otherwise uses any other .code-workspace file.
+// If no workspace files exist, it returns the original directory path.
 func resolveTargetPath(dirPath string) (string, error) {
 	// Read directory contents
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
-		return dirPath, fmt.Errorf("failed to read directory %s: %w", dirPath, err)
+		// Can't read directory, fall back to opening the directory itself
+		return dirPath, nil
+	}
+	
+	// First, check if the standard .local.code-workspace file exists
+	preferredPath, err := workspace.GetWorkspaceFilePath(dirPath)
+	if err == nil {
+		if _, err := os.Stat(preferredPath); err == nil {
+			// Preferred .local.code-workspace file exists
+			return preferredPath, nil
+		}
 	}
 	
 	// Collect all .code-workspace files
@@ -66,7 +78,7 @@ func resolveTargetPath(dirPath string) (string, error) {
 		return dirPath, nil
 	}
 	
-	// Sort alphabetically to ensure deterministic selection
+	// Sort alphabetically for deterministic selection
 	sort.Strings(workspaceFiles)
 	
 	// Return the path to the first workspace file
