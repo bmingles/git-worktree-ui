@@ -2,7 +2,6 @@ package devcontainer
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -87,75 +86,93 @@ func generateDevcontainerJSON(targetPath string) error {
 	foregroundColor := workspace.GetContrastingForeground(baseColor)
 	inactiveColor := workspace.AdjustColorBrightness(baseColor, -15)
 
-	// Build mounts list
-	mounts := []string{}
-
+	// Build mounts section with comments
+	mountsSection := ""
 	if isWorktree {
 		primaryName := filepath.Base(primaryPath)
-		gitMount := fmt.Sprintf(
-			"source=${localWorkspaceFolder}/../../%s/.git,target=${localWorkspaceFolder}/../../%s/.git,type=bind,consistency=cached",
-			primaryName, primaryName,
-		)
-		mounts = append(mounts, gitMount)
+		mountsSection = fmt.Sprintf(`  "mounts": [
+    // Bind-mount the primary .git directory since we are in a worktree
+    "source=${localWorkspaceFolder}/../../%s/.git,target=${localWorkspaceFolder}/../../%s/.git,type=bind,consistency=cached",
+
+    // Isolated Claude settings per container
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+
+    // Bind-mount .claude.json so login persists across rebuilds
+    "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
+
+    // Bind-mount skills from host into project directory for easier debugging of skills.
+    // Can remove the 'readonly' setting if you want to edit them from the container
+    "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.claude/skills,type=bind,consistency=cached,readonly"
+  ],`, primaryName, primaryName)
+	} else {
+		mountsSection = `  "mounts": [
+    // Isolated Claude settings per container
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+
+    // Bind-mount .claude.json so login persists across rebuilds
+    "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
+
+    // Bind-mount skills from host into project directory for easier debugging of skills.
+    // Can remove the 'readonly' setting if you want to edit them from the container
+    "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.claude/skills,type=bind,consistency=cached,readonly"
+  ],`
 	}
 
-	mounts = append(mounts,
-		"source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
-		"source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
-		"source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.claude/skills,type=bind,consistency=cached,readonly",
-	)
+	// Build the complete devcontainer.json content with comments
+	content := fmt.Sprintf(`// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+  "name": "Ubuntu",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "image": "mcr.microsoft.com/devcontainers/base:noble",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "version": "latest",
+      "pnpmVersion": "none",
+      "nvmVersion": "latest"
+    }
+  },
+%s
+  "postCreateCommand": ".devcontainer/setup.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
 
-	// Build devcontainer structure
-	devcontainer := map[string]interface{}{
-		"name":  "Ubuntu",
-		"image": "mcr.microsoft.com/devcontainers/base:noble",
-		"features": map[string]interface{}{
-			"ghcr.io/devcontainers/features/node:1": map[string]interface{}{
-				"nodeGypDependencies": true,
-				"version":             "latest",
-				"pnpmVersion":         "none",
-				"nvmVersion":          "latest",
-			},
-		},
-		"mounts":             mounts,
-		"postCreateCommand":  ".devcontainer/setup.sh",
-		"customizations": map[string]interface{}{
-			"vscode": map[string]interface{}{
-				"extensions": []string{
-					"anthropic.claude-code",
-					"dbaeumer.vscode-eslint",
-					"esbenp.prettier-vscode",
-				},
-				"settings": map[string]interface{}{
-					"claudeCode.allowDangerouslySkipPermissions": true,
-					"claudeCode.initialPermissionMode":           "bypassPermissions",
-					"chat.agent.maxRequests":                     50,
-					"chat.tools.terminal.autoApprove": map[string]interface{}{
-						"/.*/": true,
-					},
-					"chat.tools.terminal.ignoreDefaultAutoApproveRules": true,
-					"editor.defaultFormatter":                            "esbenp.prettier-vscode",
-					"editor.formatOnSave":                                true,
-					"terminal.integrated.defaultProfile.linux":           "bash",
-					"workbench.colorCustomizations": map[string]string{
-						"statusBar.background":        "#" + baseColor,
-						"statusBar.foreground":        foregroundColor,
-						"titleBar.activeBackground":   "#" + baseColor,
-						"titleBar.activeForeground":   foregroundColor,
-						"titleBar.inactiveBackground": "#" + inactiveColor,
-					},
-				},
-			},
-		},
-	}
+      "settings": {
+        // "Yolo" permissions for Claude
+        "claudeCode.allowDangerouslySkipPermissions": true,
+        "claudeCode.initialPermissionMode": "bypassPermissions",
 
-	data, err := json.MarshalIndent(devcontainer, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal devcontainer.json: %w", err)
-	}
+        // Copilot settings
+        "chat.agent.maxRequests": 50,
+        "chat.tools.terminal.autoApprove": {
+          "/.*/": true
+        },
+        "chat.tools.terminal.ignoreDefaultAutoApproveRules": true,
+
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "workbench.colorCustomizations": {
+          "statusBar.background": "#%s",
+          "statusBar.foreground": "%s",
+          "titleBar.activeBackground": "#%s",
+          "titleBar.activeForeground": "%s",
+          "titleBar.inactiveBackground": "#%s"
+        }
+      }
+    }
+  }
+}
+`, mountsSection, baseColor, foregroundColor, baseColor, foregroundColor, inactiveColor)
 
 	devcontainerPath := filepath.Join(targetPath, ".devcontainer", "devcontainer.json")
-	if err := os.WriteFile(devcontainerPath, data, 0644); err != nil {
+	if err := os.WriteFile(devcontainerPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write devcontainer.json: %w", err)
 	}
 
@@ -200,7 +217,8 @@ func copyDevcontainerFolder(srcDir, targetPath string) error {
 
 // CreateDevcontainer creates a .devcontainer folder in the specified directory.
 // It is idempotent: returns nil if .devcontainer already exists.
-// For worktrees whose primary project has a .devcontainer, the folder is copied from primary.
+// For worktrees whose primary project has a .devcontainer, the folder is copied from primary,
+// but the devcontainer.json is regenerated to include the .git bind-mount.
 // Otherwise, template files and a generated devcontainer.json are created.
 func CreateDevcontainer(path string) error {
 	// Idempotent: skip if .devcontainer already exists
@@ -219,6 +237,10 @@ func CreateDevcontainer(path string) error {
 			primaryDevcontainerPath := filepath.Join(primaryPath, ".devcontainer")
 			if err := copyDevcontainerFolder(primaryDevcontainerPath, path); err != nil {
 				return fmt.Errorf("failed to copy .devcontainer from primary project: %w", err)
+			}
+			// Regenerate devcontainer.json to add the .git bind-mount for worktree
+			if err := generateDevcontainerJSON(path); err != nil {
+				return fmt.Errorf("failed to generate devcontainer.json for worktree: %w", err)
 			}
 			return nil
 		}

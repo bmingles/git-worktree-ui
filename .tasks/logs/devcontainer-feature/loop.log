@@ -87,3 +87,10 @@
 [run_task_loop] Running claude agent...
 [run_task_loop] Task task-07 status after agent: completed
 [run_task_loop] Committing changes for task-07...
+[main 98f080b] devcontainer-feature/task-07: End-to-end testing of devcontainer feature - Test the complete feature: 1) Test on primary branch - verify .devcontainer created with all files and no .git bind-mount, 2) Test on worktree with primary having .devcontainer - verify folder is copied, 3) Test on worktree without primary .devcontainer - verify new folder created with .git bind-mount pointing to correct primary path, 4) Verify command disappears after .devcontainer exists, 5) Test that 'i' key is ignored when .devcontainer already exists, 6) Verify workbench.colorCustomizations in devcontainer.json matches the colors in local.code-workspace file for the same project (both should use the same primary path for color generation).
+ 6 files changed, 533 insertions(+), 5 deletions(-)
+ create mode 100644 .tasks/logs/devcontainer-feature/task-07_agent.log
+ create mode 100644 wt/pkg/devcontainer/e2e_test.go
+[run_task_loop] Committed: devcontainer-feature/task-07: End-to-end testing of devcontainer feature - Test the complete feature: 1) Test on primary branch - verify .devcontainer created with all files and no .git bind-mount, 2) Test on worktree with primary having .devcontainer - verify folder is copied, 3) Test on worktree without primary .devcontainer - verify new folder created with .git bind-mount pointing to correct primary path, 4) Verify command disappears after .devcontainer exists, 5) Test that 'i' key is ignored when .devcontainer already exists, 6) Verify workbench.colorCustomizations in devcontainer.json matches the colors in local.code-workspace file for the same project (both should use the same primary path for color generation).
+[run_task_loop] Task task-07 complete. (7/7)
+[run_task_loop] Reached max task limit (7). Done.
