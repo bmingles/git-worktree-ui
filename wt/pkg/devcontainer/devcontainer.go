@@ -164,7 +164,8 @@ func generateDevcontainerJSON(targetPath string) error {
           "titleBar.activeBackground": "#%s",
           "titleBar.activeForeground": "%s",
           "titleBar.inactiveBackground": "#%s",
-		  "chat.requestBorder": "#e21010"
+		  "chat.requestBorder": "#e21010",
+		  "statusBarItem.remoteBackground": "#e21010"
         }
       }
     }
