@@ -100,6 +100,9 @@ func generateDevcontainerJSON(targetPath string) error {
     // Bind-mount .claude.json so login persists across rebuilds
     "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
 
+    // node_modules per worktree
+    "source=node-modules-${localWorkspaceFolderBasename},target=${containerWorkspaceFolder}/node_modules,type=volume",
+
     // Bind-mount skills from host into project directory for easier debugging of skills.
     // Can remove the 'readonly' setting if you want to edit them from the container
     "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.claude/skills,type=bind,consistency=cached,readonly"
@@ -111,6 +114,9 @@ func generateDevcontainerJSON(targetPath string) error {
 
     // Bind-mount .claude.json so login persists across rebuilds
     "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
+
+    // node_modules per worktree
+    "source=node-modules-${localWorkspaceFolderBasename},target=${containerWorkspaceFolder}/node_modules,type=volume",
 
     // Bind-mount skills from host into project directory for easier debugging of skills.
     // Can remove the 'readonly' setting if you want to edit them from the container
