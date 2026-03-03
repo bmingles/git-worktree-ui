@@ -11,7 +11,7 @@ cls ()
 
 run_task_loop()
 {
-    ~/.claude/skills/task-tracking/scripts/run_task_loop.sh "$@";
+    $PROJECT_PATH/.claude/skills/task-tracking/scripts/run_task_loop.sh "$@";
 }
 
 # Custom prompt - hybrid of local + container features

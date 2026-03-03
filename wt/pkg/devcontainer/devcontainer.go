@@ -133,6 +133,9 @@ func generateDevcontainerJSON(targetPath string) error {
       "nvmVersion": "latest"
     }
   },
+  "remoteEnv": {
+    "PROJECT_PATH": "${containerWorkspaceFolder}"
+  },
 %s
   "postCreateCommand": ".devcontainer/setup.sh",
   "customizations": {
