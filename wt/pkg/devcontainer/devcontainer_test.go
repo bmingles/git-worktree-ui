@@ -53,7 +53,7 @@ func TestCopyTemplateFiles(t *testing.T) {
 
 	devcontainerDir := filepath.Join(tmpDir, ".devcontainer")
 
-	scripts := []string{"setup.sh", "setup-bash.sh", "setup-agents.sh"}
+	scripts := []string{"setup.sh"}
 	for _, script := range scripts {
 		path := filepath.Join(devcontainerDir, script)
 		info, err := os.Stat(path)
@@ -177,7 +177,7 @@ func TestCreateDevcontainer(t *testing.T) {
 		}
 
 		devcontainerDir := filepath.Join(tmpDir, ".devcontainer")
-		for _, script := range []string{"setup.sh", "setup-bash.sh", "setup-agents.sh"} {
+		for _, script := range []string{"setup.sh"} {
 			if _, err := os.Stat(filepath.Join(devcontainerDir, script)); err != nil {
 				t.Errorf("expected %s to exist: %v", script, err)
 			}
@@ -233,7 +233,7 @@ func TestCreateDevcontainer(t *testing.T) {
 		}
 
 		devcontainerDir := filepath.Join(worktreeDir, ".devcontainer")
-		for _, script := range []string{"setup.sh", "setup-bash.sh", "setup-agents.sh"} {
+		for _, script := range []string{"setup.sh"} {
 			if _, err := os.Stat(filepath.Join(devcontainerDir, script)); err != nil {
 				t.Errorf("expected %s to exist: %v", script, err)
 			}

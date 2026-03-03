@@ -136,7 +136,7 @@ func TestE2E_PrimaryBranch(t *testing.T) {
 	}
 
 	// Verify template files
-	for _, f := range []string{"setup.sh", "setup-bash.sh", "setup-agents.sh", ".gitignore", "devcontainer.json"} {
+	for _, f := range []string{"setup.sh", ".gitignore", "devcontainer.json"} {
 		assertFileExists(t, filepath.Join(devcontainerDir, f))
 	}
 
@@ -274,7 +274,7 @@ func TestE2E_WorktreeWithoutPrimaryDevcontainer(t *testing.T) {
 	devcontainerJSONPath := filepath.Join(devcontainerDir, "devcontainer.json")
 
 	// Verify template files exist
-	for _, f := range []string{"setup.sh", "setup-bash.sh", "setup-agents.sh", ".gitignore", "devcontainer.json"} {
+	for _, f := range []string{"setup.sh", ".gitignore", "devcontainer.json"} {
 		assertFileExists(t, filepath.Join(devcontainerDir, f))
 	}
 

@@ -10,7 +10,7 @@ import (
 	"github.com/bmingles/wt/pkg/workspace"
 )
 
-//go:embed templates/setup.sh templates/setup-bash.sh templates/setup-agents.sh
+//go:embed templates/setup.sh
 var templateFiles embed.FS
 
 // HasDevcontainer checks if a .devcontainer folder exists in the given path.
@@ -47,7 +47,7 @@ func copyTemplateFiles(targetPath string) error {
 		return fmt.Errorf("failed to create .devcontainer directory: %w", err)
 	}
 
-	scripts := []string{"setup.sh", "setup-bash.sh", "setup-agents.sh"}
+	scripts := []string{"setup.sh"}
 	for _, script := range scripts {
 		data, err := fs.ReadFile(templateFiles, "templates/"+script)
 		if err != nil {
