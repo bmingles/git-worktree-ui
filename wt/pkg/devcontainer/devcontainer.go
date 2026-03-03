@@ -94,8 +94,8 @@ func generateDevcontainerJSON(targetPath string) error {
     // Bind-mount the primary .git directory since we are in a worktree
     "source=${localWorkspaceFolder}/../../%s/.git,target=${localWorkspaceFolder}/../../%s/.git,type=bind,consistency=cached",
 
-    // Isolated Claude settings per container
-    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    // Isolated Claude settings per worktree
+    "source=claude-code-config-${localWorkspaceFolderBasename},target=/home/vscode/.claude,type=volume",
 
     // Bind-mount .claude.json so login persists across rebuilds
     "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
@@ -106,8 +106,8 @@ func generateDevcontainerJSON(targetPath string) error {
   ],`, primaryName, primaryName)
 	} else {
 		mountsSection = `  "mounts": [
-    // Isolated Claude settings per container
-    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    // Isolated Claude settings per worktree
+    "source=claude-code-config-${localWorkspaceFolderBasename},target=/home/vscode/.claude,type=volume",
 
     // Bind-mount .claude.json so login persists across rebuilds
     "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
@@ -163,7 +163,8 @@ func generateDevcontainerJSON(targetPath string) error {
           "statusBar.foreground": "%s",
           "titleBar.activeBackground": "#%s",
           "titleBar.activeForeground": "%s",
-          "titleBar.inactiveBackground": "#%s"
+          "titleBar.inactiveBackground": "#%s",
+		  "chat.requestBorder": "#e21010"
         }
       }
     }
