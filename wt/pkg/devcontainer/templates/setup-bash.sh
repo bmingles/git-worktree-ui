@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# Install the Node version specified in .nvmrc
+export NVM_DIR="/usr/local/share/nvm"
+# shellcheck source=/dev/null
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+if [ -f .nvmrc ]; then
+    nvm install
+fi
+
 # Setup custom prompt - hybrid of local + container features
 cat >> ~/.bashrc << 'EOF'
 
