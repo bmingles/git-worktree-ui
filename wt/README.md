@@ -112,7 +112,8 @@ wt config list [--config <path>]
 - **Enter / o**: Open selected worktree in VS Code
 - **v**: Create a `.local.code-workspace` file for the selected project or worktree
   - Generates workspace file with unique color customization
-  - Colors are based on MD5 hash of the primary project path for consistency
+  - Colors are stored in project config and can be manually customized
+  - New projects get auto-generated colors based on MD5 hash of the project path
   - Foreground colors automatically adjust for optimal contrast
   - Worktrees use the same color as their primary project
   - Hidden if workspace file already exists
@@ -146,15 +147,23 @@ The configuration file is stored at `~/.config/wt/config.yaml` by default. You c
 projects:
   - name: dashboard
     path: /Users/username/code/vscode-dashboard
+    color: "3498db"  # Optional: 6-char hex color (without #)
   - name: api
     path: /Users/username/code/api-service
+    color: "e74c3c"
   - name: frontend
     path: /Users/username/code/frontend-app
+    # No color specified - will auto-generate from path hash
 ```
 
 Each project has:
 - **name**: A unique identifier for the project
 - **path**: Absolute path to the Git repository
+- **color** (optional): 6-character hex color code (e.g., "3498db") for workspace/devcontainer theming
+  - Automatically generated when projects are created via the TUI
+  - Can be manually edited in the config file
+  - If omitted or empty, falls back to hash-based color generation
+  - Applies to both the project and all its worktrees
 
 See [example-config.yaml](example-config.yaml) for a complete example.
 

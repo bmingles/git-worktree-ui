@@ -14,6 +14,7 @@ type Project struct {
 	Path     string   `yaml:"path"`
 	Tags     []string `yaml:"tags,omitempty"`
 	Category string   `yaml:"category,omitempty"`
+	Color    string   `yaml:"color,omitempty"` // Hex color (6 chars, e.g., "d37cef") for workspace/devcontainer theming
 }
 
 // Config represents the application configuration

@@ -71,7 +71,7 @@ func copyTemplateFiles(targetPath string) error {
 // For worktrees, a bind-mount for the primary project's .git directory is added.
 // For primary branches, no .git bind mount is added.
 // Color customizations are generated consistently with workspace files.
-func generateDevcontainerJSON(targetPath string) error {
+func generateDevcontainerJSON(targetPath string, customColor string) error {
 	// Determine if this path is a worktree
 	isWorktree := workspace.IsWorktree(targetPath)
 
@@ -81,8 +81,8 @@ func generateDevcontainerJSON(targetPath string) error {
 		primaryPath = targetPath
 	}
 
-	// Generate colors matching workspace file convention
-	baseColor := workspace.GenerateColorFromPath(primaryPath)
+	// Get color (use custom if provided, otherwise generate from path)
+	baseColor := workspace.GetColorForPath(targetPath, customColor)
 	foregroundColor := workspace.GetContrastingForeground(baseColor)
 	inactiveColor := workspace.AdjustColorBrightness(baseColor, -15)
 
@@ -173,8 +173,8 @@ func generateDevcontainerJSON(targetPath string) error {
           "titleBar.activeBackground": "#%s",
           "titleBar.activeForeground": "%s",
           "titleBar.inactiveBackground": "#%s",
-		  "chat.requestBorder": "#e21010",
-		  "statusBarItem.remoteBackground": "#e21010"
+          "chat.requestBorder": "#e21010",
+          "statusBarItem.remoteBackground": "#e21010"
         }
       }
     }
@@ -232,6 +232,11 @@ func copyDevcontainerFolder(srcDir, targetPath string) error {
 // but the devcontainer.json is regenerated to include the .git bind-mount.
 // Otherwise, template files and a generated devcontainer.json are created.
 func CreateDevcontainer(path string) error {
+	return CreateDevcontainerWithColor(path, "")
+}
+
+// CreateDevcontainerWithColor creates a .devcontainer folder with optional custom color.
+func CreateDevcontainerWithColor(path string, customColor string) error {
 	// Idempotent: skip if .devcontainer already exists
 	if HasDevcontainer(path) {
 		return nil
@@ -250,7 +255,7 @@ func CreateDevcontainer(path string) error {
 				return fmt.Errorf("failed to copy .devcontainer from primary project: %w", err)
 			}
 			// Regenerate devcontainer.json to add the .git bind-mount for worktree
-			if err := generateDevcontainerJSON(path); err != nil {
+			if err := generateDevcontainerJSON(path, customColor); err != nil {
 				return fmt.Errorf("failed to generate devcontainer.json for worktree: %w", err)
 			}
 			return nil
@@ -261,7 +266,7 @@ func CreateDevcontainer(path string) error {
 	if err := copyTemplateFiles(path); err != nil {
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
-	if err := generateDevcontainerJSON(path); err != nil {
+	if err := generateDevcontainerJSON(path, customColor); err != nil {
 		return fmt.Errorf("failed to generate devcontainer.json: %w", err)
 	}
 	return nil

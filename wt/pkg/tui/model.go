@@ -1296,7 +1296,16 @@ func (m Model) createWorkspaceFile() tea.Cmd {
 	}
 	
 	return func() tea.Msg {
-		if err := workspace.CreateOrCopyWorkspaceFile(targetPath); err != nil {
+		// Look up project color from config
+		var projectColor string
+		for _, project := range m.projects {
+			if project.Path == item.ProjectPath {
+				projectColor = project.Color
+				break
+			}
+		}
+		
+		if err := workspace.CreateOrCopyWorkspaceFileWithColor(targetPath, projectColor); err != nil {
 			return worktreeErrorMsg{err: fmt.Errorf("failed to create workspace file: %w", err)}
 		}
 		
@@ -1327,7 +1336,16 @@ func (m Model) createDevcontainer() tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		if err := devcontainer.CreateDevcontainer(targetPath); err != nil {
+		// Look up project color from config
+		var projectColor string
+		for _, project := range m.projects {
+			if project.Path == item.ProjectPath {
+				projectColor = project.Color
+				break
+			}
+		}
+		
+		if err := devcontainer.CreateDevcontainerWithColor(targetPath, projectColor); err != nil {
 			return worktreeErrorMsg{err: fmt.Errorf("failed to create devcontainer: %w", err)}
 		}
 
@@ -1370,10 +1388,14 @@ func (m Model) addProject(name, path string) tea.Cmd {
 			}
 		}
 		
+		// Generate color for the project based on its path
+		projectColor := workspace.GenerateColorFromPath(absPath)
+		
 		// Add new project
 		cfg.Projects = append(cfg.Projects, config.Project{
-			Name: name,
-			Path: absPath,
+			Name:  name,
+			Path:  absPath,
+			Color: projectColor,
 		})
 		
 		// Save config

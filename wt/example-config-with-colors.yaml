@@ -1,0 +1,39 @@
+# Example wt config showing the new color field feature
+#
+# When projects are created via the TUI (using the "Add Project" feature),
+# a color is automatically generated based on the project path and stored here.
+# 
+# You can manually edit the color value in this config file to customize the 
+# workspace and devcontainer theme for each project:
+#
+# - Colors are 6-character hex values (without the # prefix)
+# - Example valid colors: "d37cef", "3e5a7b", "ff6600"
+# - If you remove or leave the color field empty, the hash function will
+#   automatically generate a color from the project path
+# - Worktrees inherit the color from their primary project
+
+projects:
+  - name: "My Frontend Project"
+    path: "/home/user/projects/frontend"
+    color: "3498db"  # Nice blue - manually customized!
+    category: "Web Development"
+    tags:
+      - "react"
+      - "typescript"
+
+  - name: "Backend API"
+    path: "/home/user/projects/backend-api"
+    color: "e74c3c"  # Red for production services
+    category: "Web Development"
+    tags:
+      - "go"
+      - "api"
+
+  - name: "Legacy Project"
+    path: "/home/user/old-stuff/legacy"
+    # No color specified - will use hash-generated color
+    category: "Maintenance"
+
+categories:
+  - "Web Development"
+  - "Maintenance"

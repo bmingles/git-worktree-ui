@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -34,10 +33,34 @@ type ColorCustomizations struct {
 
 // GenerateColorFromPath generates a hex color code based on the MD5 hash of the given path.
 // It returns a 6-character hex color (e.g., "d37cef").
+// Uses XOR mixing of hash bytes to ensure uniform color distribution across RGB channels.
 func GenerateColorFromPath(path string) string {
 	hash := md5.Sum([]byte(path))
-	hexStr := hex.EncodeToString(hash[:])
-	return hexStr[:6]
+	
+	// XOR pairs of bytes from different positions to mix entropy
+	// This eliminates bias toward any particular color channel
+	r := hash[0] ^ hash[8]   // XOR byte 0 with byte 8
+	g := hash[5] ^ hash[13]  // XOR byte 5 with byte 13
+	b := hash[10] ^ hash[2]  // XOR byte 10 with byte 2
+	
+	return fmt.Sprintf("%02x%02x%02x", r, g, b)
+}
+
+// GetColorForPath returns the appropriate color for a path.
+// If customColor is provided and non-empty, it's used.
+// Otherwise, generates a color from the primary project path.
+func GetColorForPath(targetPath string, customColor string) string {
+	if customColor != "" {
+		return customColor
+	}
+	
+	// Get primary project path for consistent color generation
+	primaryPath, err := GetPrimaryProjectPath(targetPath)
+	if err != nil {
+		primaryPath = targetPath
+	}
+	
+	return GenerateColorFromPath(primaryPath)
 }
 
 // GetContrastingForeground returns either "#000000" or "#ffffff" based on the
@@ -163,6 +186,12 @@ func WorkspaceFileExists(targetPath string) bool {
 // CreateWorkspaceFile creates a .code-workspace file in the specified directory
 // with color customizations based on the primary project path.
 func CreateWorkspaceFile(targetPath string) error {
+	return CreateWorkspaceFileWithColor(targetPath, "")
+}
+
+// CreateWorkspaceFileWithColor creates a workspace file with an optional custom color.
+// If customColor is empty, generates a color from the primary project path.
+func CreateWorkspaceFileWithColor(targetPath string, customColor string) error {
 	// Get the primary project path for consistent coloring
 	primaryPath, err := GetPrimaryProjectPath(targetPath)
 	if err != nil {
@@ -179,8 +208,8 @@ func CreateWorkspaceFile(targetPath string) error {
 		return fmt.Errorf("workspace file already exists: %s", workspaceFilePath)
 	}
 	
-	// Generate color based on primary path
-	baseColor := GenerateColorFromPath(primaryPath)
+	// Get color (use custom if provided, otherwise generate)
+	baseColor := GetColorForPath(targetPath, customColor)
 	foregroundColor := GetContrastingForeground(baseColor)
 	inactiveColor := AdjustColorBrightness(baseColor, -15) // Slightly darker for inactive
 	
@@ -280,6 +309,11 @@ func CopyWorkspaceFile(primaryPath, worktreePath string) error {
 // - For primary branch: creates file if it doesn't exist, skips if it does
 // - For worktrees: copies from primary if one exists, otherwise creates new, skips if already exists
 func CreateOrCopyWorkspaceFile(targetPath string) error {
+	return CreateOrCopyWorkspaceFileWithColor(targetPath, "")
+}
+
+// CreateOrCopyWorkspaceFileWithColor creates or copies a workspace file with optional custom color.
+func CreateOrCopyWorkspaceFileWithColor(targetPath string, customColor string) error {
 	// Check if workspace file already exists
 	if WorkspaceFileExists(targetPath) {
 		// File exists, skip
@@ -301,11 +335,11 @@ func CreateOrCopyWorkspaceFile(targetPath string) error {
 	}
 	
 	// For primary branch or when primary has no workspace file, create new
-	return createWorkspaceFileInternal(targetPath)
+	return createWorkspaceFileInternal(targetPath, customColor)
 }
 
 // createWorkspaceFileInternal creates a new workspace file (internal use).
-func createWorkspaceFileInternal(targetPath string) error {
+func createWorkspaceFileInternal(targetPath string, customColor string) error {
 	// Get the primary project path for consistent coloring
 	primaryPath, err := GetPrimaryProjectPath(targetPath)
 	if err != nil {
@@ -317,8 +351,8 @@ func createWorkspaceFileInternal(targetPath string) error {
 	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
 	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
 	
-	// Generate color based on primary path
-	baseColor := GenerateColorFromPath(primaryPath)
+	// Get color (use custom if provided, otherwise generate)
+	baseColor := GetColorForPath(targetPath, customColor)
 	foregroundColor := GetContrastingForeground(baseColor)
 	inactiveColor := AdjustColorBrightness(baseColor, -15) // Slightly darker for inactive
 	
