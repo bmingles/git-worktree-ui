@@ -140,7 +140,8 @@ func generateDevcontainerJSON(targetPath string, customColor string) error {
     }
   },
   "remoteEnv": {
-    "PROJECT_PATH": "${containerWorkspaceFolder}"
+    "PROJECT_PATH": "${containerWorkspaceFolder}",
+    "TZ": "America/Chicago"
   },
 %s
   "postCreateCommand": ".devcontainer/setup.sh",
