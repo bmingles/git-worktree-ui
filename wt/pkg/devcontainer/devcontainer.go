@@ -122,9 +122,7 @@ func generateDevcontainerJSON(targetPath string, customColor string) error {
     // Can remove the 'readonly' setting if you want to edit them from the container
     "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.claude/skills,type=bind,consistency=cached,readonly",
 
-    // Since skills directory is a git repo, we need mount over it's .git directory
-    // and gitignore everything in it to avoid it getting committed to the project repo
-    "target=${containerWorkspaceFolder}/.claude/skills/.git,type=tmpfs",
+    // We don't want to commit files from mounted folder to primary repo
     "source=${localWorkspaceFolder}/.devcontainer/.gitignore,target=${containerWorkspaceFolder}/.claude/.gitignore,type=bind,consistency=cached"
   ],`
 	}
