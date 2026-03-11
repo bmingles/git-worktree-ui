@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -131,10 +132,38 @@ func TestGetPrimaryProjectPath(t *testing.T) {
 	})
 }
 
+// setupGitRepo initializes a git repo with an initial commit in a temp dir.
+func setupGitRepo(t *testing.T, branchName string) string {
+	t.Helper()
+	dir := t.TempDir()
+	runGit(t, dir, "init")
+	runGit(t, dir, "config", "user.email", "test@test.com")
+	runGit(t, dir, "config", "user.name", "Test User")
+	readme := filepath.Join(dir, "README.md")
+	if err := os.WriteFile(readme, []byte("# Test"), 0644); err != nil {
+		t.Fatalf("failed to write README: %v", err)
+	}
+	runGit(t, dir, "add", ".")
+	runGit(t, dir, "commit", "-m", "initial commit")
+	if branchName != "" && branchName != "master" && branchName != "main" {
+		runGit(t, dir, "checkout", "-b", branchName)
+	}
+	return dir
+}
+
+// runGit runs a git command in dir, failing the test on error.
+func runGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v failed: %v\n%s", args, err, out)
+	}
+}
+
 func TestWorkspaceFileExists(t *testing.T) {
-	tmpDir := t.TempDir()
-	
 	t.Run("file does not exist", func(t *testing.T) {
+		tmpDir := setupGitRepo(t, "main")
 		exists := WorkspaceFileExists(tmpDir)
 		if exists {
 			t.Error("WorkspaceFileExists() = true, expected false for non-existent file")
@@ -142,16 +171,16 @@ func TestWorkspaceFileExists(t *testing.T) {
 	})
 	
 	t.Run("file exists", func(t *testing.T) {
-		tmpDir2 := t.TempDir()
+		tmpDir := setupGitRepo(t, "main")
 		
 		// Create workspace file
-		err := CreateWorkspaceFile(tmpDir2)
+		err := CreateWorkspaceFile(tmpDir)
 		if err != nil {
 			t.Errorf("CreateWorkspaceFile() error = %v", err)
 		}
 		
 		// Check if it exists
-		exists := WorkspaceFileExists(tmpDir2)
+		exists := WorkspaceFileExists(tmpDir)
 		if !exists {
 			t.Error("WorkspaceFileExists() = false, expected true after creating file")
 		}
@@ -159,34 +188,32 @@ func TestWorkspaceFileExists(t *testing.T) {
 }
 
 func TestCreateWorkspaceFile(t *testing.T) {
-	// Create a temporary directory for testing
-	tmpDir := t.TempDir()
-	
 	t.Run("create workspace file", func(t *testing.T) {
+		tmpDir := setupGitRepo(t, "DH-12345_some-feature")
+		
 		err := CreateWorkspaceFile(tmpDir)
 		if err != nil {
 			t.Errorf("CreateWorkspaceFile() error = %v", err)
 		}
 		
-		// Verify file was created
-		baseName := filepath.Base(tmpDir)
-		expectedFile := filepath.Join(tmpDir, baseName+".local.code-workspace")
+		// Verify file was created with branch name
+		expectedFile := filepath.Join(tmpDir, "DH-12345_some-feature.local.code-workspace")
 		if _, err := os.Stat(expectedFile); os.IsNotExist(err) {
 			t.Errorf("Workspace file was not created: %s", expectedFile)
 		}
 	})
 	
 	t.Run("file already exists", func(t *testing.T) {
-		tmpDir2 := t.TempDir()
+		tmpDir := setupGitRepo(t, "main")
 		
 		// Create file first time
-		err := CreateWorkspaceFile(tmpDir2)
+		err := CreateWorkspaceFile(tmpDir)
 		if err != nil {
 			t.Errorf("First CreateWorkspaceFile() error = %v", err)
 		}
 		
 		// Try to create again
-		err = CreateWorkspaceFile(tmpDir2)
+		err = CreateWorkspaceFile(tmpDir)
 		if err == nil {
 			t.Error("Expected error when creating duplicate workspace file, got nil")
 		}

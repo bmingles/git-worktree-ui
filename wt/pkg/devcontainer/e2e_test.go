@@ -321,9 +321,11 @@ func TestE2E_ColorMatchesWorkspaceFile(t *testing.T) {
 	}
 
 	// Read workspace file colors
-	primaryPath, _ := workspace.GetPrimaryProjectPath(primaryDir)
-	baseName := filepath.Base(primaryPath)
-	workspaceFilePath := filepath.Join(primaryDir, baseName+".local.code-workspace")
+	branchName, err := workspace.GetCurrentBranch(primaryDir)
+	if err != nil {
+		t.Fatalf("GetCurrentBranch() error = %v", err)
+	}
+	workspaceFilePath := filepath.Join(primaryDir, branchName+".local.code-workspace")
 	workspaceDoc := readJSONFile(t, workspaceFilePath)
 
 	settings, ok := workspaceDoc["settings"].(map[string]interface{})
@@ -377,9 +379,11 @@ func TestE2E_WorktreeColorMatchesWorkspaceFile(t *testing.T) {
 	}
 
 	// Read workspace file colors
-	primaryPath, _ := workspace.GetPrimaryProjectPath(worktreeDir)
-	baseName := filepath.Base(primaryPath)
-	workspaceFilePath := filepath.Join(worktreeDir, baseName+".local.code-workspace")
+	branchName, err := workspace.GetCurrentBranch(worktreeDir)
+	if err != nil {
+		t.Fatalf("GetCurrentBranch() error = %v", err)
+	}
+	workspaceFilePath := filepath.Join(worktreeDir, branchName+".local.code-workspace")
 	workspaceDoc := readJSONFile(t, workspaceFilePath)
 
 	settings, ok := workspaceDoc["settings"].(map[string]interface{})
