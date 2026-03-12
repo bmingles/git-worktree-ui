@@ -17,14 +17,6 @@ curl -fsSL https://gh.io/copilot-install | bash
 # Setup custom prompt - hybrid of local + container features
 cat >> ~/.bashrc << 'EOF'
 
-# Automatically use the correct Node version when entering the project
-export NVM_DIR="/usr/local/share/nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-cd() { builtin cd "$@" && [ -f .nvmrc ] && nvm use --silent; }
-
-# Auto-switch to .nvmrc version on shell start
-[ -f .nvmrc ] && nvm use --silent
-
 cls () 
 { 
     clear && printf '\033[3J'
