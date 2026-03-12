@@ -187,6 +187,43 @@ func TestWorkspaceFileExists(t *testing.T) {
 	})
 }
 
+func TestGetTargetPath(t *testing.T) {
+	tests := []struct {
+		name      string
+		basePath  string
+		subFolder string
+		expected  string
+	}{
+		{
+			name:      "empty subFolder returns basePath unchanged",
+			basePath:  "/base/path",
+			subFolder: "",
+			expected:  "/base/path",
+		},
+		{
+			name:      "single-segment subFolder returns joined path",
+			basePath:  "/base",
+			subFolder: "sub",
+			expected:  "/base/sub",
+		},
+		{
+			name:      "multi-segment subFolder returns joined path",
+			basePath:  "/base",
+			subFolder: "a/b/c",
+			expected:  "/base/a/b/c",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetTargetPath(tt.basePath, tt.subFolder)
+			if result != tt.expected {
+				t.Errorf("GetTargetPath(%q, %q) = %q, expected %q", tt.basePath, tt.subFolder, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestCreateWorkspaceFile(t *testing.T) {
 	t.Run("create workspace file", func(t *testing.T) {
 		tmpDir := setupGitRepo(t, "DH-12345_some-feature")
