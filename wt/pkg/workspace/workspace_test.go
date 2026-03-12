@@ -1,9 +1,11 @@
 package workspace
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -221,6 +223,65 @@ func TestGetTargetPath(t *testing.T) {
 				t.Errorf("GetTargetPath(%q, %q) = %q, expected %q", tt.basePath, tt.subFolder, result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestCreateWorkspaceFileInSubfolder(t *testing.T) {
+	// Create a git repo in tmpDir
+	tmpDir := setupGitRepo(t, "DH-99999_subfolder-test")
+
+	// Create a subfolder inside the git repo
+	subFolder := filepath.Join(tmpDir, "sub")
+	if err := os.MkdirAll(subFolder, 0755); err != nil {
+		t.Fatalf("failed to create subfolder: %v", err)
+	}
+
+	// Call CreateWorkspaceFileWithColor targeting the subfolder
+	err := CreateWorkspaceFileWithColor(subFolder, "")
+	if err != nil {
+		t.Fatalf("CreateWorkspaceFileWithColor() error = %v", err)
+	}
+
+	// Verify workspace file is created in the subfolder, not the parent
+	entries, err := os.ReadDir(subFolder)
+	if err != nil {
+		t.Fatalf("failed to read subfolder: %v", err)
+	}
+	var workspaceFile string
+	for _, e := range entries {
+		if strings.HasSuffix(e.Name(), ".code-workspace") {
+			workspaceFile = filepath.Join(subFolder, e.Name())
+		}
+	}
+	if workspaceFile == "" {
+		t.Fatal("workspace file was not created in the subfolder")
+	}
+
+	// Verify no workspace file was created in the parent directory
+	parentEntries, err := os.ReadDir(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to read parent dir: %v", err)
+	}
+	for _, e := range parentEntries {
+		if strings.HasSuffix(e.Name(), ".code-workspace") {
+			t.Errorf("unexpected workspace file in parent directory: %s", e.Name())
+		}
+	}
+
+	// Verify workspace file has valid JSON structure with path '.'
+	data, err := os.ReadFile(workspaceFile)
+	if err != nil {
+		t.Fatalf("failed to read workspace file: %v", err)
+	}
+	var ws WorkspaceFile
+	if err := json.Unmarshal(data, &ws); err != nil {
+		t.Fatalf("workspace file is not valid JSON: %v", err)
+	}
+	if len(ws.Folders) == 0 {
+		t.Fatal("workspace file has no folders")
+	}
+	if ws.Folders[0].Path != "." {
+		t.Errorf("workspace folder path = %q, expected %q", ws.Folders[0].Path, ".")
 	}
 }
 
