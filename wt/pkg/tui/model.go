@@ -1201,7 +1201,18 @@ func (m Model) openInVSCode() tea.Cmd {
 	}
 	
 	return func() tea.Msg {
-		if err := vscode.OpenInVSCode(pathToOpen); err != nil {
+		// Look up project subfolder from config
+		var projectSubFolder string
+		for _, project := range m.projects {
+			if project.Path == item.ProjectPath {
+				projectSubFolder = project.SubFolder
+				break
+			}
+		}
+
+		effectivePath := workspace.GetTargetPath(pathToOpen, projectSubFolder)
+
+		if err := vscode.OpenInVSCode(effectivePath); err != nil {
 			return vsCodeErrorMsg{err: err}
 		}
 		return nil
@@ -1340,16 +1351,20 @@ func (m Model) createDevcontainer() tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		// Look up project color from config
+		// Look up project color and subfolder from config
 		var projectColor string
+		var projectSubFolder string
 		for _, project := range m.projects {
 			if project.Path == item.ProjectPath {
 				projectColor = project.Color
+				projectSubFolder = project.SubFolder
 				break
 			}
 		}
-		
-		if err := devcontainer.CreateDevcontainerWithColor(targetPath, projectColor); err != nil {
+
+		effectivePath := workspace.GetTargetPath(targetPath, projectSubFolder)
+
+		if err := devcontainer.CreateDevcontainerWithColor(effectivePath, projectColor); err != nil {
 			return worktreeErrorMsg{err: fmt.Errorf("failed to create devcontainer: %w", err)}
 		}
 
