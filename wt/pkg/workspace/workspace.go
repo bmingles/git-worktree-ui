@@ -199,6 +199,15 @@ func CreateWorkspaceFile(targetPath string) error {
 // CreateWorkspaceFileWithColor creates a workspace file with an optional custom color.
 // If customColor is empty, generates a color from the primary project path.
 func CreateWorkspaceFileWithColor(targetPath string, customColor string) error {
+	// Validate that targetPath exists and is a directory
+	info, err := os.Stat(targetPath)
+	if err != nil {
+		return fmt.Errorf("target directory does not exist: %s", targetPath)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("target directory does not exist: %s", targetPath)
+	}
+
 	// Get the branch name for the workspace file
 	branchName, err := GetCurrentBranch(targetPath)
 	if err != nil {

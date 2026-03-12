@@ -238,6 +238,15 @@ func CreateDevcontainer(path string) error {
 
 // CreateDevcontainerWithColor creates a .devcontainer folder with optional custom color.
 func CreateDevcontainerWithColor(path string, customColor string) error {
+	// Validate that path exists and is a directory
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("target directory does not exist: %s", path)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("target directory does not exist: %s", path)
+	}
+
 	// Idempotent: skip if .devcontainer already exists
 	if HasDevcontainer(path) {
 		return nil
