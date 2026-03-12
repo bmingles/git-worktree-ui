@@ -87,29 +87,21 @@ func generateDevcontainerJSON(targetPath string, customColor string) error {
 	inactiveColor := workspace.AdjustColorBrightness(baseColor, -15)
 
 	// Build mounts section with comments
-	mountsSection := ""
+	// Start with worktree-specific mount if needed
+	mountsSection := `  "mounts": [`
 	if isWorktree {
 		primaryName := filepath.Base(primaryPath)
-		mountsSection = fmt.Sprintf(`  "mounts": [
+		mountsSection += fmt.Sprintf(`
     // Bind-mount the primary .git directory since we are in a worktree
     "source=${localWorkspaceFolder}/../../%s/.git,target=${localWorkspaceFolder}/../../%s/.git,type=bind,consistency=cached",
-
-    // Isolated Claude settings per worktree
-    "source=claude-code-config-${localWorkspaceFolderBasename},target=/home/vscode/.claude,type=volume",
-
-    // Bind-mount .claude.json so login persists across rebuilds
-    "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
-
-    // node_modules per worktree
-    "source=node-modules-${localWorkspaceFolderBasename},target=${containerWorkspaceFolder}/node_modules,type=volume",
-
-    // Bind-mount skills from host into project directory for easier debugging of skills.
-    // Can remove the 'readonly' setting if you want to edit them from the container
-    "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.claude/skills,type=bind,consistency=cached,readonly"
-  ],`, primaryName, primaryName)
+`, primaryName, primaryName)
 	} else {
-		mountsSection = `  "mounts": [
-    // Isolated Claude settings per worktree
+		mountsSection += `
+`
+	}
+	
+	// Add common mounts for both worktrees and primary branches
+	mountsSection += `    // Isolated Claude settings per worktree
     "source=claude-code-config-${localWorkspaceFolderBasename},target=/home/vscode/.claude,type=volume",
 
     // Bind-mount .claude.json so login persists across rebuilds
@@ -123,9 +115,14 @@ func generateDevcontainerJSON(targetPath string, customColor string) error {
     "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.claude/skills,type=bind,consistency=cached,readonly",
 
     // We don't want to commit files from mounted folder to primary repo
-    "source=${localWorkspaceFolder}/.devcontainer/.gitignore,target=${containerWorkspaceFolder}/.claude/.gitignore,type=bind,consistency=cached"
+    "source=${localWorkspaceFolder}/.devcontainer/.gitignore,target=${containerWorkspaceFolder}/.claude/.gitignore,type=bind,consistency=cached",
+
+    // Bind-mount tasks from host into project directory
+    "source=${localEnv:HOME}/.tasks,target=${containerWorkspaceFolder}/.tasks,type=bind,consistency=cached",
+
+    // We don't want to commit files from mounted folder to primary repo
+    "source=${localWorkspaceFolder}/.devcontainer/.gitignore,target=${containerWorkspaceFolder}/.tasks/.gitignore,type=bind,consistency=cached"
   ],`
-	}
 
 	// Build the complete devcontainer.json content with comments
 	content := fmt.Sprintf(`// For format details, see https://aka.ms/devcontainer.json. For config options, see the
