@@ -1296,16 +1296,20 @@ func (m Model) createWorkspaceFile() tea.Cmd {
 	}
 	
 	return func() tea.Msg {
-		// Look up project color from config
+		// Look up project color and subfolder from config
 		var projectColor string
+		var projectSubFolder string
 		for _, project := range m.projects {
 			if project.Path == item.ProjectPath {
 				projectColor = project.Color
+				projectSubFolder = project.SubFolder
 				break
 			}
 		}
-		
-		if err := workspace.CreateOrCopyWorkspaceFileWithColor(targetPath, projectColor); err != nil {
+
+		effectivePath := workspace.GetTargetPath(targetPath, projectSubFolder)
+
+		if err := workspace.CreateOrCopyWorkspaceFileWithColor(effectivePath, projectColor); err != nil {
 			return worktreeErrorMsg{err: fmt.Errorf("failed to create workspace file: %w", err)}
 		}
 		
