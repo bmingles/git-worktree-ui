@@ -55,13 +55,28 @@ func assertFileExists(t *testing.T, path string) {
 	}
 }
 
-// readJSONFile reads and unmarshals a JSON file into a map.
+// stripLineComments removes // line comments from JSONC content.
+func stripLineComments(data []byte) []byte {
+	lines := strings.Split(string(data), "\n")
+	result := make([]string, 0, len(lines))
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "//") {
+			continue
+		}
+		result = append(result, line)
+	}
+	return []byte(strings.Join(result, "\n"))
+}
+
+// readJSONFile reads and unmarshals a JSONC file (JSON with comments) into a map.
 func readJSONFile(t *testing.T, path string) map[string]interface{} {
 	t.Helper()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read %s: %v", path, err)
 	}
+	data = stripLineComments(data)
 	var result map[string]interface{}
 	if err := json.Unmarshal(data, &result); err != nil {
 		t.Fatalf("failed to unmarshal %s: %v", path, err)
@@ -239,14 +254,18 @@ func TestE2E_WorktreeWithPrimaryDevcontainer(t *testing.T) {
 		t.Errorf("copied sentinel = %q, expected %q", string(data), "from-primary")
 	}
 
-	// Verify devcontainer.json content was copied from primary
+	// Verify devcontainer.json exists and has been regenerated with .git bind-mount
+	// (primary devcontainer.json is copied but then regenerated to add the .git bind-mount)
 	copiedJSON := filepath.Join(worktreeDir, ".devcontainer", "devcontainer.json")
-	copiedData, err := os.ReadFile(copiedJSON)
-	if err != nil {
-		t.Fatalf("expected devcontainer.json to be copied: %v", err)
+	mounts := getMounts(t, copiedJSON)
+	hasGitMount := false
+	for _, m := range mounts {
+		if strings.Contains(m, ".git,") && strings.Contains(m, "type=bind") {
+			hasGitMount = true
+		}
 	}
-	if string(copiedData) != string(customContent) {
-		t.Errorf("copied devcontainer.json content = %q, expected %q", string(copiedData), string(customContent))
+	if !hasGitMount {
+		t.Errorf("worktree devcontainer.json should have .git bind-mount, mounts: %v", mounts)
 	}
 
 	t.Log("PASS: Worktree with primary .devcontainer - folder copied from primary")
