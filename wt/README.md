@@ -164,6 +164,28 @@ Each project has:
   - Can be manually edited in the config file
   - If omitted or empty, falls back to hash-based color generation
   - Applies to both the project and all its worktrees
+- **subfolder** (optional): A subfolder path relative to the checkout root, for monorepo projects
+
+### Subfolder Configuration
+
+For monorepo projects, you can specify a subfolder where workspace files, devcontainer files, and VS Code should open. When set, all TUI operations (workspace file creation, devcontainer creation, opening in VSCode) will target the subfolder relative to the checkout root.
+
+```yaml
+projects:
+  - name: my-monorepo
+    path: /Users/username/code/my-monorepo
+    color: "27ae60"
+    subfolder: packages/frontend
+  - name: backend
+    path: /Users/username/code/my-monorepo
+    color: "8e44ad"
+    subfolder: packages/backend
+```
+
+This is useful when:
+- Your repository contains multiple independent packages or apps
+- You want VS Code to open to a specific package's directory
+- Each sub-project has its own devcontainer or workspace configuration
 
 See [example-config.yaml](example-config.yaml) for a complete example.
 
