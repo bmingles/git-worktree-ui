@@ -26,8 +26,8 @@
   // "remoteUser": "root",
 
   "mounts": [
-    // Isolated Claude settings per container
-    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    // Isolated Claude settings per worktree
+    "source=claude-code-config-${localWorkspaceFolderBasename},target=/home/vscode/.claude,type=volume",
 
     // Bind-mount .claude.json so login persists across rebuilds
     "source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind,consistency=cached",
@@ -37,7 +37,10 @@
     "source=${localEnv:HOME}/.agents/skills,target=${containerWorkspaceFolder}/.agents/skills,type=bind,consistency=cached,readonly",
 
     // Persist Go module cache across container rebuilds
-    "source=vscode-dashboard-gomodcache,target=/go/pkg/mod,type=volume"
+    "source=vscode-dashboard-gomodcache,target=/go/pkg/mod,type=volume",
+
+    // Bind-mount tasks from host into project directory
+    "source=${localEnv:HOME}/.tasks,target=${containerWorkspaceFolder}/.tasks,type=bind,consistency=cached"
   ],
 
   "postCreateCommand": "sudo chown -R vscode:vscode /go/pkg/mod && .devcontainer/setup.sh",
