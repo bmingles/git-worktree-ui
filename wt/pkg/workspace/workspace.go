@@ -94,6 +94,19 @@ func GetContrastingForeground(bgColor string) string {
 	return "#ffffff"
 }
 
+// GetCurrentBranch returns the current Git branch name for the given path.
+func GetCurrentBranch(path string) (string, error) {
+	cmd := exec.Command("git", "symbolic-ref", "--short", "HEAD")
+	cmd.Dir = path
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current branch: %w (output: %s)", err, string(output))
+	}
+
+	return strings.TrimSpace(string(output)), nil
+}
+
 // AdjustColorBrightness adjusts the brightness of a color by a percentage.
 // Positive percentage makes it lighter, negative makes it darker.
 func AdjustColorBrightness(hexColor string, percentage float64) string {
@@ -152,23 +165,7 @@ func GetPrimaryProjectPath(path string) (string, error) {
 }
 
 // WorkspaceFileExists checks if any .code-workspace file exists in the given path.
-// It first checks for the standard .local.code-workspace file, then any other .code-workspace file.
 func WorkspaceFileExists(targetPath string) bool {
-	// First check for the standard .local.code-workspace file
-	primaryPath, err := GetPrimaryProjectPath(targetPath)
-	if err != nil {
-		primaryPath = targetPath
-	}
-	
-	baseName := filepath.Base(primaryPath)
-	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
-	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
-	
-	if _, err := os.Stat(workspaceFilePath); err == nil {
-		return true
-	}
-	
-	// Check for any other .code-workspace file
 	entries, err := os.ReadDir(targetPath)
 	if err != nil {
 		return false
@@ -192,15 +189,13 @@ func CreateWorkspaceFile(targetPath string) error {
 // CreateWorkspaceFileWithColor creates a workspace file with an optional custom color.
 // If customColor is empty, generates a color from the primary project path.
 func CreateWorkspaceFileWithColor(targetPath string, customColor string) error {
-	// Get the primary project path for consistent coloring
-	primaryPath, err := GetPrimaryProjectPath(targetPath)
+	// Get the branch name for the workspace file
+	branchName, err := GetCurrentBranch(targetPath)
 	if err != nil {
-		primaryPath = targetPath
+		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 	
-	// Get the base name for the workspace file
-	baseName := filepath.Base(primaryPath)
-	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", branchName)
 	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
 	
 	// Check if file already exists
@@ -262,30 +257,41 @@ func IsWorktree(path string) bool {
 
 // GetWorkspaceFilePath returns the expected workspace file path for a given directory.
 func GetWorkspaceFilePath(targetPath string) (string, error) {
-	primaryPath, err := GetPrimaryProjectPath(targetPath)
+	branchName, err := GetCurrentBranch(targetPath)
 	if err != nil {
-		primaryPath = targetPath
+		return "", fmt.Errorf("failed to get current branch: %w", err)
 	}
 	
-	baseName := filepath.Base(primaryPath)
-	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", branchName)
 	return filepath.Join(targetPath, workspaceFileName), nil
+}
+
+// FindWorkspaceFile finds any .local.code-workspace file in the given directory.
+// Returns the full path to the first .local.code-workspace file found, or an error if none exists.
+func FindWorkspaceFile(targetPath string) (string, error) {
+	entries, err := os.ReadDir(targetPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read directory: %w", err)
+	}
+	
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".local.code-workspace") {
+			return filepath.Join(targetPath, entry.Name()), nil
+		}
+	}
+	
+	return "", fmt.Errorf("no .local.code-workspace file found in %s", targetPath)
 }
 
 // CopyWorkspaceFile copies a workspace file from the primary project to a worktree.
 func CopyWorkspaceFile(primaryPath, worktreePath string) error {
-	// Get source workspace file from primary
-	srcPath, err := GetWorkspaceFilePath(primaryPath)
+	// Find any .local.code-workspace file in primary (don't assume specific name)
+	srcPath, err := FindWorkspaceFile(primaryPath)
 	if err != nil {
-		return fmt.Errorf("failed to get primary workspace path: %w", err)
+		return fmt.Errorf("failed to find workspace file in primary: %w", err)
 	}
 	
-	// Check if source exists
-	if _, err := os.Stat(srcPath); os.IsNotExist(err) {
-		return fmt.Errorf("workspace file does not exist in primary: %s", srcPath)
-	}
-	
-	// Get destination workspace file path
+	// Get destination workspace file path (using worktree's branch name)
 	dstPath, err := GetWorkspaceFilePath(worktreePath)
 	if err != nil {
 		return fmt.Errorf("failed to get worktree workspace path: %w", err)
@@ -340,15 +346,13 @@ func CreateOrCopyWorkspaceFileWithColor(targetPath string, customColor string) e
 
 // createWorkspaceFileInternal creates a new workspace file (internal use).
 func createWorkspaceFileInternal(targetPath string, customColor string) error {
-	// Get the primary project path for consistent coloring
-	primaryPath, err := GetPrimaryProjectPath(targetPath)
+	// Get the branch name for the workspace file
+	branchName, err := GetCurrentBranch(targetPath)
 	if err != nil {
-		primaryPath = targetPath
+		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 	
-	// Get the base name for the workspace file
-	baseName := filepath.Base(primaryPath)
-	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", baseName)
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", branchName)
 	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
 	
 	// Get color (use custom if provided, otherwise generate)
