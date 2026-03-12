@@ -11,6 +11,16 @@ import (
 	"strings"
 )
 
+// GetTargetPath returns the effective working directory path.
+// If subFolder is empty, returns basePath unchanged.
+// If subFolder is set, returns filepath.Join(basePath, subFolder).
+func GetTargetPath(basePath string, subFolder string) string {
+	if subFolder == "" {
+		return basePath
+	}
+	return filepath.Join(basePath, subFolder)
+}
+
 // WorkspaceFile represents the structure of a VS Code workspace file.
 type WorkspaceFile struct {
 	Folders  []WorkspaceFolder       `json:"folders"`
