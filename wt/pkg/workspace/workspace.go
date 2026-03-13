@@ -214,9 +214,10 @@ func CreateWorkspaceFileWithColor(targetPath string, customColor string) error {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 	
-	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", branchName)
+	safeBranchName := strings.ReplaceAll(branchName, "/", "-")
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", safeBranchName)
 	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
-	
+
 	// Check if file already exists
 	if _, err := os.Stat(workspaceFilePath); err == nil {
 		return fmt.Errorf("workspace file already exists: %s", workspaceFilePath)
@@ -281,7 +282,8 @@ func GetWorkspaceFilePath(targetPath string) (string, error) {
 		return "", fmt.Errorf("failed to get current branch: %w", err)
 	}
 	
-	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", branchName)
+	safeBranchName := strings.ReplaceAll(branchName, "/", "-")
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", safeBranchName)
 	return filepath.Join(targetPath, workspaceFileName), nil
 }
 
@@ -371,9 +373,10 @@ func createWorkspaceFileInternal(targetPath string, customColor string) error {
 		return fmt.Errorf("failed to get current branch: %w", err)
 	}
 	
-	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", branchName)
+	safeBranchName := strings.ReplaceAll(branchName, "/", "-")
+	workspaceFileName := fmt.Sprintf("%s.local.code-workspace", safeBranchName)
 	workspaceFilePath := filepath.Join(targetPath, workspaceFileName)
-	
+
 	// Get color (use custom if provided, otherwise generate)
 	baseColor := GetColorForPath(targetPath, customColor)
 	foregroundColor := GetContrastingForeground(baseColor)
