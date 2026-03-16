@@ -303,9 +303,15 @@ func TestE2E_WorktreeWithoutPrimaryDevcontainer(t *testing.T) {
 		t.Fatalf("failed to get primary path: %v", err)
 	}
 	primaryName := filepath.Base(primaryPath)
+	relToParent, err := filepath.Rel(worktreeDir, filepath.Dir(primaryPath))
+	if err != nil {
+		t.Fatalf("failed to compute relative path: %v", err)
+	}
+	relToParent = filepath.ToSlash(relToParent)
+	gitRelPath := relToParent + "/" + primaryName + "/.git"
 	expectedMount := fmt.Sprintf(
-		"source=${localWorkspaceFolder}/../../%s/.git,target=${localWorkspaceFolder}/../../%s/.git,type=bind,consistency=cached",
-		primaryName, primaryName,
+		"source=${localWorkspaceFolder}/%s,target=${localWorkspaceFolder}/%s,type=bind,consistency=cached",
+		gitRelPath, gitRelPath,
 	)
 
 	mounts := getMounts(t, devcontainerJSONPath)

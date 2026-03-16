@@ -431,8 +431,9 @@ func (m Model) renderHelp() string {
 		case ItemTypeProject:
 			// Project: worktree-level, project-level, and global
 			// Check if workspace file and devcontainer already exist
-			hasWorkspace := workspace.WorkspaceFileExists(item.ProjectPath)
-			hasDevcontainer := devcontainer.HasDevcontainer(item.ProjectPath)
+			effectivePath := workspace.GetTargetPath(item.ProjectPath, m.getProjectSubFolder(item.ProjectPath))
+			hasWorkspace := workspace.WorkspaceFileExists(effectivePath)
+			hasDevcontainer := devcontainer.HasDevcontainer(effectivePath)
 			var firstRow string
 			if hasWorkspace && hasDevcontainer {
 				firstRow = "[a] add worktree"
@@ -453,8 +454,9 @@ func (m Model) renderHelp() string {
 			var hasWorkspace bool
 			var hasDevcontainer bool
 			if item.Worktree != nil {
-				hasWorkspace = workspace.WorkspaceFileExists(item.Worktree.Path)
-				hasDevcontainer = devcontainer.HasDevcontainer(item.Worktree.Path)
+				worktreeEffectivePath := workspace.GetTargetPath(item.Worktree.Path, m.getProjectSubFolder(item.ProjectPath))
+				hasWorkspace = workspace.WorkspaceFileExists(worktreeEffectivePath)
+				hasDevcontainer = devcontainer.HasDevcontainer(worktreeEffectivePath)
 			}
 
 			if item.Worktree != nil && !item.Worktree.IsPrimary {
@@ -505,6 +507,16 @@ func (m Model) renderHelp() string {
 	}
 	
 	rows = append(rows, globalCommands)
-	
+
 	return helpStyle.Render(strings.Join(rows, "\n\n"))
+}
+
+// getProjectSubFolder returns the configured SubFolder for a project path.
+func (m Model) getProjectSubFolder(projectPath string) string {
+	for _, p := range m.projects {
+		if p.Path == projectPath {
+			return p.SubFolder
+		}
+	}
+	return ""
 }

@@ -91,10 +91,18 @@ func generateDevcontainerJSON(targetPath string, customColor string) error {
 	mountsSection := `  "mounts": [`
 	if isWorktree {
 		primaryName := filepath.Base(primaryPath)
+		// Compute the relative path from targetPath to the directory containing primaryPath.
+		// This accounts for subfolder depth (e.g. web/client-ui adds 2 extra levels).
+		relToParent, err := filepath.Rel(targetPath, filepath.Dir(primaryPath))
+		if err != nil {
+			relToParent = "../.."
+		}
+		relToParent = filepath.ToSlash(relToParent)
+		gitRelPath := relToParent + "/" + primaryName + "/.git"
 		mountsSection += fmt.Sprintf(`
     // Bind-mount the primary .git directory since we are in a worktree
-    "source=${localWorkspaceFolder}/../../%s/.git,target=${localWorkspaceFolder}/../../%s/.git,type=bind,consistency=cached",
-`, primaryName, primaryName)
+    "source=${localWorkspaceFolder}/%s,target=${localWorkspaceFolder}/%s,type=bind,consistency=cached",
+`, gitRelPath, gitRelPath)
 	} else {
 		mountsSection += `
 `
