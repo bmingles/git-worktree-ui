@@ -54,6 +54,10 @@ type Model struct {
 	tagInputMode       bool                           // True when in tag input mode
 	tagInput           textinput.Model                // Text input for tag names
 	tagProject         string                         // Project path for tag assignment
+	worktreesLoading   map[string]bool                // Track which projects are being loaded
+	worktreesLoaded    map[string]bool                // Track which projects have been loaded
+	isLoading          bool                           // True while initial async load is in progress
+	loadedCount        int                            // Number of projects loaded so far
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -130,6 +134,10 @@ func NewModel(projects []config.Project, categories []string) Model {
 		tagInput:           tagInput,
 		expandedProjects:   make(map[string]bool),
 		expandedCategories: make(map[string]bool),
+		worktreesLoading:   make(map[string]bool),
+		worktreesLoaded:    make(map[string]bool),
+		isLoading:          true,
+		loadedCount:        0,
 		width:              80,  // Default width
 		height:             24,  // Default height
 	}
@@ -139,16 +147,17 @@ func NewModel(projects []config.Project, categories []string) Model {
 		m.expandedProjects[project.Path] = false
 	}
 	
-	// Build initial items list and load worktrees
+	// Build initial items list (with empty worktrees)
 	m.buildItems()
-	m.loadWorktrees()
+	// Don't call m.loadWorktrees() here - it will be called async from Init()
 	
 	return m
 }
 
 // Init initializes the model (bubbletea.Model interface).
 func (m Model) Init() tea.Cmd {
-	return nil
+	// Start async loading of worktrees
+	return m.loadAllWorktreesAsync()
 }
 
 // Update handles messages and updates the model (bubbletea.Model interface).
@@ -498,6 +507,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKeyPress(msg)
 	case worktreesLoadedMsg:
 		m.worktrees[msg.projectPath] = msg.worktrees
+		m.buildItems()
+		return m, nil
+	case worktreeLoadCompleteMsg:
+		// Handle async loading completion for a single project
+		if msg.err != nil {
+			// Log error but continue (don't block UI on single project failure)
+			m.err = msg.err
+		} else {
+			m.worktrees[msg.projectPath] = msg.worktrees
+			m.worktreesLoaded[msg.projectPath] = true
+		}
+		m.loadedCount++
+		
+		// Check if all projects have finished loading
+		if m.loadedCount >= len(m.projects) {
+			m.isLoading = false
+		}
+		
+		m.buildItems()
+		return m, nil
+	case allWorktreesLoadedMsg:
+		// All worktrees finished loading
+		m.isLoading = false
 		m.buildItems()
 		return m, nil
 	case worktreeCreatedMsg:
@@ -1125,10 +1157,85 @@ func (m *Model) loadWorktrees() {
 	m.buildItems()
 }
 
-// worktreesLoadedMsg is sent when worktrees are loaded for a project.
+// loadAllWorktreesAsync starts loading worktrees for all projects in parallel.
+func (m Model) loadAllWorktreesAsync() tea.Cmd {
+	// Create a batch of commands that will run in parallel
+	cmds := make([]tea.Cmd, len(m.projects))
+	
+	for i, project := range m.projects {
+		cmds[i] = m.loadProjectWorktreesCmd(project.Path)
+	}
+	
+	// Return all commands as a batch - each will send a worktreeLoadCompleteMsg
+	// when done, and the Update handler will track when all are finished
+	return tea.Batch(cmds...)
+}
+
+// loadProjectWorktreesCmd loads worktrees for a specific project (for lazy loading).
+func (m Model) loadProjectWorktreesCmd(projectPath string) tea.Cmd {
+	return func() tea.Msg {
+		// Find the project
+		var project *config.Project
+		for i := range m.projects {
+			if m.projects[i].Path == projectPath {
+				project = &m.projects[i]
+				break
+			}
+		}
+		
+		if project == nil {
+			return worktreeLoadCompleteMsg{
+				projectPath: projectPath,
+				worktrees:   nil,
+				err:         fmt.Errorf("project not found: %s", projectPath),
+			}
+		}
+		
+		// Load worktrees for this project
+		wts, err := worktree.ListWorktrees(project.Path)
+		if err != nil {
+			return worktreeLoadCompleteMsg{
+				projectPath: projectPath,
+				worktrees:   nil,
+				err:         err,
+			}
+		}
+		
+		// Load status for each worktree
+		for i := range wts {
+			status, err := worktree.GetStatus(wts[i].Path)
+			if err != nil {
+				// Continue with empty status on error
+				continue
+			}
+			wts[i].Status = status
+		}
+		
+		return worktreeLoadCompleteMsg{
+			projectPath: projectPath,
+			worktrees:   wts,
+			err:         nil,
+		}
+	}
+}
+
+// worktreeLoadCompleteMsg is sent when worktrees are loaded for a project.
+type worktreeLoadCompleteMsg struct {
+	projectPath string
+	worktrees   []worktree.Worktree
+	err         error
+}
+
+// worktreesLoadedMsg is sent when worktrees are reloaded for a project (used by reload operations).
 type worktreesLoadedMsg struct {
 	projectPath string
 	worktrees   []worktree.Worktree
+}
+
+// allWorktreesLoadedMsg is sent when all worktrees have finished loading.
+type allWorktreesLoadedMsg struct {
+	totalProjects  int
+	totalWorktrees int
 }
 
 // vsCodeErrorMsg is sent when VS Code fails to open.

@@ -261,6 +261,13 @@ func (m Model) View() string {
 		b.WriteString("\n\n")
 	}
 
+	// Loading indicator
+	if m.isLoading {
+		loadingMsg := fmt.Sprintf("Loading worktrees... (%d/%d projects)", m.loadedCount, len(m.projects))
+		b.WriteString(helpStyle.Render(loadingMsg))
+		b.WriteString("\n\n")
+	}
+
 	// Render items
 	b.WriteString(m.renderItems())
 

@@ -45,7 +45,7 @@
     "source=vscode-dashboard-gomodcache,target=/go/pkg/mod,type=volume",
 
     // Bind-mount tasks from host into project directory
-    "source=${localEnv:HOME}/.tasks,target=${containerWorkspaceFolder}/.tasks,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.tasks/git-worktree-tui,target=${containerWorkspaceFolder}/.tasks,type=bind,consistency=cached"
   ],
 
   "postCreateCommand": "sudo chown -R vscode:vscode /go/pkg/mod && .devcontainer/setup.sh",
