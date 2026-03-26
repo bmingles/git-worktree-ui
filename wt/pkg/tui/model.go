@@ -1351,20 +1351,22 @@ func (m Model) createDevcontainer() tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		// Look up project color and subfolder from config
+		// Look up project color, subfolder, and name from config
 		var projectColor string
 		var projectSubFolder string
+		var projectName string
 		for _, project := range m.projects {
 			if project.Path == item.ProjectPath {
 				projectColor = project.Color
 				projectSubFolder = project.SubFolder
+				projectName = filepath.Base(project.Path)
 				break
 			}
 		}
 
 		effectivePath := workspace.GetTargetPath(targetPath, projectSubFolder)
 
-		if err := devcontainer.CreateDevcontainerWithColor(effectivePath, projectColor); err != nil {
+		if err := devcontainer.CreateDevcontainerWithColor(effectivePath, projectColor, projectName); err != nil {
 			return worktreeErrorMsg{err: fmt.Errorf("failed to create devcontainer: %w", err)}
 		}
 

@@ -71,7 +71,7 @@ func copyTemplateFiles(targetPath string) error {
 // For worktrees, a bind-mount for the primary project's .git directory is added.
 // For primary branches, no .git bind mount is added.
 // Color customizations are generated consistently with workspace files.
-func generateDevcontainerJSON(targetPath string, customColor string) error {
+func generateDevcontainerJSON(targetPath string, customColor string, projectName string) error {
 	// Determine if this path is a worktree
 	isWorktree := workspace.IsWorktree(targetPath)
 
@@ -126,7 +126,7 @@ func generateDevcontainerJSON(targetPath string, customColor string) error {
     "source=${localWorkspaceFolder}/.devcontainer/.gitignore,target=${containerWorkspaceFolder}/.claude/.gitignore,type=bind,consistency=cached",
 
     // Bind-mount tasks from host into project directory
-    "source=${localEnv:HOME}/.tasks,target=${containerWorkspaceFolder}/.tasks,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.tasks/%s,target=${containerWorkspaceFolder}/.tasks,type=bind,consistency=cached",
 
     // We don't want to commit files from mounted folder to primary repo
     "source=${localWorkspaceFolder}/.devcontainer/.gitignore,target=${containerWorkspaceFolder}/.tasks/.gitignore,type=bind,consistency=cached"
@@ -189,7 +189,7 @@ func generateDevcontainerJSON(targetPath string, customColor string) error {
     }
   }
 }
-`, mountsSection, baseColor, foregroundColor, baseColor, foregroundColor, inactiveColor)
+`, fmt.Sprintf(mountsSection, projectName), baseColor, foregroundColor, baseColor, foregroundColor, inactiveColor)
 
 	devcontainerPath := filepath.Join(targetPath, ".devcontainer", "devcontainer.json")
 	if err := os.WriteFile(devcontainerPath, []byte(content), 0644); err != nil {
@@ -241,11 +241,12 @@ func copyDevcontainerFolder(srcDir, targetPath string) error {
 // but the devcontainer.json is regenerated to include the .git bind-mount.
 // Otherwise, template files and a generated devcontainer.json are created.
 func CreateDevcontainer(path string) error {
-	return CreateDevcontainerWithColor(path, "")
+	return CreateDevcontainerWithColor(path, "", "")
 }
 
-// CreateDevcontainerWithColor creates a .devcontainer folder with optional custom color.
-func CreateDevcontainerWithColor(path string, customColor string) error {
+// CreateDevcontainerWithColor creates a .devcontainer folder with optional custom color and project name.
+// projectName is used to scope the .tasks mount to a specific project subdirectory.
+func CreateDevcontainerWithColor(path string, customColor string, projectName string) error {
 	// Validate that path exists and is a directory
 	info, err := os.Stat(path)
 	if err != nil {
@@ -273,7 +274,7 @@ func CreateDevcontainerWithColor(path string, customColor string) error {
 				return fmt.Errorf("failed to copy .devcontainer from primary project: %w", err)
 			}
 			// Regenerate devcontainer.json to add the .git bind-mount for worktree
-			if err := generateDevcontainerJSON(path, customColor); err != nil {
+			if err := generateDevcontainerJSON(path, customColor, projectName); err != nil {
 				return fmt.Errorf("failed to generate devcontainer.json for worktree: %w", err)
 			}
 			return nil
@@ -284,7 +285,7 @@ func CreateDevcontainerWithColor(path string, customColor string) error {
 	if err := copyTemplateFiles(path); err != nil {
 		return fmt.Errorf("failed to copy template files: %w", err)
 	}
-	if err := generateDevcontainerJSON(path, customColor); err != nil {
+	if err := generateDevcontainerJSON(path, customColor, projectName); err != nil {
 		return fmt.Errorf("failed to generate devcontainer.json: %w", err)
 	}
 	return nil
