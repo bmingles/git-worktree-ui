@@ -118,3 +118,31 @@ func parseWorktreeList(output string) ([]Worktree, error) {
 
 	return worktrees, nil
 }
+
+// CountWorktrees returns the number of worktrees for a given project path.
+// This is a fast operation that doesn't load full status information.
+func CountWorktrees(projectPath string) (int, error) {
+	if projectPath == "" {
+		return 0, errors.New("projectPath cannot be empty")
+	}
+
+	cmd := exec.Command("git", "worktree", "list", "--porcelain")
+	cmd.Dir = projectPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, fmt.Errorf("failed to count worktrees: %w", err)
+	}
+
+	// Count the number of "worktree" entries in the output
+	count := 0
+	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "worktree ") {
+			count++
+		}
+	}
+
+	return count, nil
+}

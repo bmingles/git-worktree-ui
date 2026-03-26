@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -56,8 +57,11 @@ type Model struct {
 	tagProject         string                         // Project path for tag assignment
 	worktreesLoading   map[string]bool                // Track which projects are being loaded
 	worktreesLoaded    map[string]bool                // Track which projects have been loaded
+	worktreeCounts     map[string]int                 // Track worktree counts for lazy loading
 	isLoading          bool                           // True while initial async load is in progress
 	loadedCount        int                            // Number of projects loaded so far
+	lazyLoadEnabled    bool                           // Enable lazy loading (only load expanded projects)
+	searchDebounceID   int                            // Incremented on each keystroke to invalidate old debounces
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -136,8 +140,11 @@ func NewModel(projects []config.Project, categories []string) Model {
 		expandedCategories: make(map[string]bool),
 		worktreesLoading:   make(map[string]bool),
 		worktreesLoaded:    make(map[string]bool),
+		worktreeCounts:     make(map[string]int),
 		isLoading:          true,
 		loadedCount:        0,
+		lazyLoadEnabled:    true, // Enable lazy loading by default
+		searchDebounceID:   0,
 		width:              80,  // Default width
 		height:             24,  // Default height
 	}
@@ -195,13 +202,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.buildItems()
 				return m, nil
 			default:
-				// Update search input and apply filter in real-time
+				// Update search input and start/reset debounce timer
 				var cmd tea.Cmd
 				m.searchInput, cmd = m.searchInput.Update(msg)
 				m.filterTerm = m.searchInput.Value()
-				m.buildItems()
-				return m, cmd
+				
+				// Increment debounce ID to invalidate any pending debounce
+				m.searchDebounceID++
+				
+				// Start debounce timer - will rebuild after inactivity
+				return m, tea.Batch(cmd, m.debounceSearch(m.searchDebounceID))
 			}
+		case searchDebounceMsg:
+			// Debounce timer expired while in search mode
+			if msg.id == m.searchDebounceID {
+				m.buildItems()
+			}
+			return m, nil
 		default:
 			// Update search input for non-key messages
 			var cmd tea.Cmd
@@ -532,6 +549,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.isLoading = false
 		m.buildItems()
 		return m, nil
+	case worktreeCountLoadedMsg:
+		// Handle count loading (lazy loading mode)
+		if msg.err != nil {
+			// Log error but continue
+			m.err = msg.err
+		} else {
+			m.worktreeCounts[msg.projectPath] = msg.count
+			m.worktreesLoaded[msg.projectPath] = false // Not fully loaded yet
+		}
+		m.loadedCount++
+		
+		// Check if all projects have finished initial loading
+		if m.loadedCount >= len(m.projects) {
+			m.isLoading = false
+		}
+		
+		m.buildItems()
+		return m, nil
+	case searchDebounceMsg:
+		// Debounce timer expired, rebuild items if this is still the current search
+		if msg.id == m.searchDebounceID {
+			m.buildItems()
+		}
+		// Otherwise, ignore this stale debounce
+		return m, nil
 	case worktreeCreatedMsg:
 		// Reload worktrees for the project
 		return m, m.reloadWorktrees(msg.projectPath)
@@ -694,7 +736,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			switch item.Type {
 			case ItemTypeProject:
 				// Toggle project expansion on Enter
-				m.expandedProjects[item.ProjectPath] = !m.expandedProjects[item.ProjectPath]
+				wasExpanded := m.expandedProjects[item.ProjectPath]
+				m.expandedProjects[item.ProjectPath] = !wasExpanded
+				
+				// If expanding and not fully loaded, trigger full load
+				if !wasExpanded && m.lazyLoadEnabled && !m.worktreesLoaded[item.ProjectPath] {
+					m.worktreesLoading[item.ProjectPath] = true
+					m.buildItems()
+					return m, m.loadProjectWorktreesCmd(item.ProjectPath)
+				}
+				
 				m.buildItems()
 				return m, nil
 			case ItemTypeWorktree:
@@ -716,7 +767,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
 			item := m.items[m.selectedIndex]
 			if item.Type == ItemTypeProject {
-				m.expandedProjects[item.ProjectPath] = !m.expandedProjects[item.ProjectPath]
+				wasExpanded := m.expandedProjects[item.ProjectPath]
+				m.expandedProjects[item.ProjectPath] = !wasExpanded
+				
+				// If expanding and not fully loaded, trigger full load
+				if !wasExpanded && m.lazyLoadEnabled && !m.worktreesLoaded[item.ProjectPath] {
+					m.worktreesLoading[item.ProjectPath] = true
+					m.buildItems()
+					return m, m.loadProjectWorktreesCmd(item.ProjectPath)
+				}
+				
 				m.buildItems()
 			}
 		}
@@ -727,7 +787,16 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
 			item := m.items[m.selectedIndex]
 			if item.Type == ItemTypeProject {
+				wasExpanded := m.expandedProjects[item.ProjectPath]
 				m.expandedProjects[item.ProjectPath] = true
+				
+				// If wasn't expanded and not fully loaded, trigger full load
+				if !wasExpanded && m.lazyLoadEnabled && !m.worktreesLoaded[item.ProjectPath] {
+					m.worktreesLoading[item.ProjectPath] = true
+					m.buildItems()
+					return m, m.loadProjectWorktreesCmd(item.ProjectPath)
+				}
+				
 				m.buildItems()
 			}
 		}
@@ -1163,11 +1232,16 @@ func (m Model) loadAllWorktreesAsync() tea.Cmd {
 	cmds := make([]tea.Cmd, len(m.projects))
 	
 	for i, project := range m.projects {
-		cmds[i] = m.loadProjectWorktreesCmd(project.Path)
+		if m.lazyLoadEnabled {
+			// Lazy loading: only load count initially
+			cmds[i] = m.loadProjectCountCmd(project.Path)
+		} else {
+			// Eager loading: load full worktree details
+			cmds[i] = m.loadProjectWorktreesCmd(project.Path)
+		}
 	}
 	
-	// Return all commands as a batch - each will send a worktreeLoadCompleteMsg
-	// when done, and the Update handler will track when all are finished
+	// Return all commands as a batch - each will send a message when done
 	return tea.Batch(cmds...)
 }
 
@@ -1219,6 +1293,36 @@ func (m Model) loadProjectWorktreesCmd(projectPath string) tea.Cmd {
 	}
 }
 
+// loadProjectCountCmd loads just the worktree count for a specific project (fast operation for lazy loading).
+func (m Model) loadProjectCountCmd(projectPath string) tea.Cmd {
+	return func() tea.Msg {
+		count, err := worktree.CountWorktrees(projectPath)
+		if err != nil {
+			return worktreeCountLoadedMsg{
+				projectPath: projectPath,
+				count:       0,
+				err:         err,
+			}
+		}
+		
+		return worktreeCountLoadedMsg{
+			projectPath: projectPath,
+			count:       count,
+			err:         nil,
+		}
+	}
+}
+
+// debounceSearch creates a command that waits for a short delay before sending searchDebounceMsg.
+// This allows typing to complete before rebuilding the items list.
+// The id parameter is used to identify if this debounce is still current when it fires.
+func (m Model) debounceSearch(id int) tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(200 * time.Millisecond) // 200ms debounce delay
+		return searchDebounceMsg{id: id}
+	}
+}
+
 // worktreeLoadCompleteMsg is sent when worktrees are loaded for a project.
 type worktreeLoadCompleteMsg struct {
 	projectPath string
@@ -1236,6 +1340,18 @@ type worktreesLoadedMsg struct {
 type allWorktreesLoadedMsg struct {
 	totalProjects  int
 	totalWorktrees int
+}
+
+// worktreeCountLoadedMsg is sent when a project's worktree count is loaded (lazy loading).
+type worktreeCountLoadedMsg struct {
+	projectPath string
+	count       int
+	err         error
+}
+
+// searchDebounceMsg is sent after the search debounce timer expires.
+type searchDebounceMsg struct {
+	id int // Debounce ID to identify if this is still the current search
 }
 
 // vsCodeErrorMsg is sent when VS Code fails to open.

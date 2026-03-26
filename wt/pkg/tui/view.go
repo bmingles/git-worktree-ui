@@ -277,7 +277,7 @@ func (m Model) View() string {
 		b.WriteString(helpStyle.Render("Search: "))
 		b.WriteString(m.searchInput.View())
 		b.WriteString("\n")
-		b.WriteString(helpStyle.Render("Press Enter to apply filter • Esc to cancel"))
+		b.WriteString(helpStyle.Render("Press Enter to confirm • Esc to cancel"))
 	} else if m.filterActive {
 		b.WriteString("\n")
 		b.WriteString(helpStyle.Render(fmt.Sprintf("Filter: %s (Press Esc to clear)", m.filterTerm)))
@@ -356,7 +356,11 @@ func (m Model) renderProject(item Item, isSelected bool) string {
 	// Worktree count (always show for consistency)
 	countStr := ""
 	if wts, ok := m.worktrees[item.ProjectPath]; ok {
+		// Fully loaded - show actual count
 		count := len(wts)
+		countStr = statusStyle.Render(fmt.Sprintf(" (%d)", count))
+	} else if count, ok := m.worktreeCounts[item.ProjectPath]; ok {
+		// Lazy loaded - show count from fast operation
 		countStr = statusStyle.Render(fmt.Sprintf(" (%d)", count))
 	}
 
