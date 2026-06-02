@@ -52,6 +52,11 @@
 
   "customizations": {
     "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
       // "extensions": ["GitHub.copilot", "GitHub.copilot-chat"],
       "settings": {
         // Agent settings
