@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -526,7 +525,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case worktreesLoadedMsg:
 		m.worktrees[msg.projectPath] = msg.worktrees
 		m.buildItems()
-		return m, nil
+		return m, statusBatchCmd(msg.projectPath, msg.worktrees)
 	case worktreeLoadCompleteMsg:
 		// Handle async loading completion for a single project
 		if msg.err != nil {
@@ -544,6 +543,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		
 		m.buildItems()
+		return m, statusBatchCmd(msg.projectPath, msg.worktrees)
+	case worktreeStatusLoadedMsg:
+		if wts, ok := m.worktrees[msg.projectPath]; ok {
+			for i := range wts {
+				if wts[i].Path == msg.worktreePath {
+					m.worktrees[msg.projectPath][i].Status = msg.status
+					break
+				}
+			}
+			m.buildItems()
+		}
 		return m, nil
 	case allWorktreesLoadedMsg:
 		// All worktrees finished loading
@@ -1276,26 +1286,6 @@ func (m Model) loadProjectWorktreesCmd(projectPath string) tea.Cmd {
 			}
 		}
 
-		// Load status for each worktree in parallel, bounded to avoid
-		// spawning unbounded git processes for large projects.
-		const maxConcurrentStatus = 16
-		sem := make(chan struct{}, maxConcurrentStatus)
-		var wg sync.WaitGroup
-		for i := range wts {
-			wg.Add(1)
-			go func(i int) {
-				defer wg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				status, err := worktree.GetStatus(wts[i].Path)
-				if err != nil {
-					return
-				}
-				wts[i].Status = status
-			}(i)
-		}
-		wg.Wait()
-
 		return worktreeLoadCompleteMsg{
 			projectPath: projectPath,
 			worktrees:   wts,
@@ -1363,6 +1353,13 @@ type worktreeCountLoadedMsg struct {
 // searchDebounceMsg is sent after the search debounce timer expires.
 type searchDebounceMsg struct {
 	id int // Debounce ID to identify if this is still the current search
+}
+
+// worktreeStatusLoadedMsg is sent when git status is loaded for a single worktree.
+type worktreeStatusLoadedMsg struct {
+	projectPath  string
+	worktreePath string
+	status       worktree.GitStatus
 }
 
 // vsCodeErrorMsg is sent when VS Code fails to open.
@@ -1489,21 +1486,39 @@ func (m Model) reloadWorktrees(projectPath string) tea.Cmd {
 			return worktreeErrorMsg{err: err}
 		}
 		
-		// Load status for each worktree
-		for i := range wts {
-			status, err := worktree.GetStatus(wts[i].Path)
-			if err != nil {
-				// Continue with empty status on error
-				continue
-			}
-			wts[i].Status = status
-		}
-		
 		return worktreesLoadedMsg{
 			projectPath: projectPath,
 			worktrees:   wts,
 		}
 	}
+}
+
+// loadWorktreeStatusCmd loads git status for a single worktree and returns a worktreeStatusLoadedMsg.
+// Returns nil on error so Bubble Tea silently ignores failures.
+func loadWorktreeStatusCmd(projectPath, worktreePath string) tea.Cmd {
+	return func() tea.Msg {
+		status, err := worktree.GetStatus(worktreePath)
+		if err != nil {
+			return nil
+		}
+		return worktreeStatusLoadedMsg{
+			projectPath:  projectPath,
+			worktreePath: worktreePath,
+			status:       status,
+		}
+	}
+}
+
+// statusBatchCmd fans out one status command per worktree as a tea.Batch, or nil if empty.
+func statusBatchCmd(projectPath string, wts []worktree.Worktree) tea.Cmd {
+	if len(wts) == 0 {
+		return nil
+	}
+	cmds := make([]tea.Cmd, len(wts))
+	for i, wt := range wts {
+		cmds[i] = loadWorktreeStatusCmd(projectPath, wt.Path)
+	}
+	return tea.Batch(cmds...)
 }
 
 // deleteWorktree deletes a worktree.
