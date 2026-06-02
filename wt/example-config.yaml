@@ -55,12 +55,54 @@ projects:
       - react
       - personal
 
+# Custom key bindings — run any shell command from the TUI
+#
+# Each command declares:
+#   key:     the key to press (must not conflict with built-in keys)
+#   label:   short description shown in the help footer
+#   scope:   "worktree" | "project" | "any"  — which node types show this command
+#   command: shell line executed via `sh -c`; receives WT_* env vars
+#   args:    (optional) named arguments with defaults, overridable per-project via command_args
+#
+# Available environment variables:
+#   WT_PROJECT_NAME  — project name
+#   WT_PROJECT_PATH  — project root path
+#   WT_CWD           — resolved working directory (path + subfolder if configured)
+#   WT_SCOPE         — the command's scope string
+#   WT_WORKTREE_PATH — worktree checkout path (worktree nodes only)
+#   WT_BRANCH        — branch name (worktree nodes only)
+#   WT_ARG_<name>    — one var per declared/overridden arg
+#
+# commands:
+#   - key: g
+#     label: lazygit
+#     scope: worktree          # shown only when a worktree row is selected
+#     command: lazygit
+#
+#   - key: F
+#     label: fetch
+#     scope: project           # shown only when a project row is selected; runs in project dir
+#     command: git fetch --all --prune
+#
+#   - key: P
+#     label: push branch
+#     scope: worktree
+#     command: git push -u origin "$WT_BRANCH"
+#
+#   - key: s
+#     label: scaffold
+#     scope: project
+#     command: project-cli --template "$WT_ARG_template"
+#     args:
+#       template: default-template   # per-project override via 'command_args' on the project
+
 # Notes:
 # - 'name' must be unique for each project
 # - 'path' should be an absolute path to a Git repository
 # - 'tags' is an optional list of labels to organize your projects
 # - 'category' is an optional label to group projects (does not need to be in categories list)
 # - 'categories' defines available categories and their display order
+# - 'command_args' on a project overrides the default arg values for all commands on that project
 # - The path must exist and be a valid Git repository with worktree support
 # - You can add as many projects as needed
 # - Tags can be used to filter and organize projects (e.g., work, personal, frontend, backend)

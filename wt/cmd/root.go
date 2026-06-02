@@ -58,7 +58,7 @@ func launchTUI() {
 	}
 
 	// Create and run TUI (even if no projects - user can add them with 'a' key)
-	model := tui.NewModel(cfg.Projects, cfg.Categories)
+	model := tui.NewModel(cfg.Projects, cfg.Categories, cfg.Commands)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

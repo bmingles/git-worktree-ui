@@ -6,6 +6,32 @@ import (
 	"github.com/bmingles/wt/pkg/config"
 )
 
+func TestCommandAppliesTo(t *testing.T) {
+	tests := []struct {
+		scope    string
+		itemType ItemType
+		want     bool
+	}{
+		{"worktree", ItemTypeWorktree, true},
+		{"worktree", ItemTypeProject, false},
+		{"worktree", ItemTypeCategory, false},
+		{"project", ItemTypeProject, true},
+		{"project", ItemTypeWorktree, false},
+		{"project", ItemTypeCategory, false},
+		{"any", ItemTypeWorktree, true},
+		{"any", ItemTypeProject, true},
+		{"any", ItemTypeCategory, false},
+		{"unknown", ItemTypeWorktree, false},
+	}
+	for _, tt := range tests {
+		cmd := config.Command{Scope: tt.scope}
+		got := commandAppliesTo(cmd, tt.itemType)
+		if got != tt.want {
+			t.Errorf("commandAppliesTo(scope=%q, type=%v) = %v, want %v", tt.scope, tt.itemType, got, tt.want)
+		}
+	}
+}
+
 func TestBuildItemsWithCategories(t *testing.T) {
 	// Test data
 	categories := []string{"work", "personal"}
@@ -36,7 +62,7 @@ func TestBuildItemsWithCategories(t *testing.T) {
 		},
 	}
 
-	m := NewModel(projects, categories)
+	m := NewModel(projects, categories, nil)
 
 	// Categories are always expanded, so we should see:
 	// work (category), project-a, project-b, personal (category), project-c, Uncategorized (category), project-d
@@ -98,7 +124,7 @@ func TestBuildItemsWithoutCategories(t *testing.T) {
 		},
 	}
 
-	m := NewModel(projects, categories)
+	m := NewModel(projects, categories, nil)
 
 	// Should have Uncategorized category + project-a (always expanded)
 	expectedCount := 2
@@ -139,7 +165,7 @@ func TestSearchFilter(t *testing.T) {
 		},
 	}
 
-	m := NewModel(projects, categories)
+	m := NewModel(projects, categories, nil)
 
 	// Test 1: Filter by project name
 	m.filterTerm = "react"

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/bmingles/wt/pkg/config"
 	"github.com/bmingles/wt/pkg/devcontainer"
 	"github.com/bmingles/wt/pkg/workspace"
 )
@@ -508,7 +509,14 @@ func (m Model) renderHelp() string {
 			"[n] new project • [c] assign category • [t] assign tags",
 		}
 	}
-	
+
+	// Append in-scope custom commands (after the built-in rows, before global)
+	if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+		if seg := m.customCommandHelp(m.items[m.selectedIndex].Type); seg != "" {
+			rows = append(rows, seg)
+		}
+	}
+
 	// Global commands - always available
 	globalCommands := "[/] search • [e] edit config • [r] refresh • [esc/q] quit"
 	
@@ -520,6 +528,35 @@ func (m Model) renderHelp() string {
 	rows = append(rows, globalCommands)
 
 	return helpStyle.Render(strings.Join(rows, "\n\n"))
+}
+
+// commandAppliesTo reports whether a custom command's scope matches the given item type.
+// Must live in the tui package because ItemType is defined here (avoids config→tui import cycle).
+func commandAppliesTo(cmd config.Command, t ItemType) bool {
+	switch cmd.Scope {
+	case "worktree":
+		return t == ItemTypeWorktree
+	case "project":
+		return t == ItemTypeProject
+	case "any":
+		return t == ItemTypeWorktree || t == ItemTypeProject
+	}
+	return false
+}
+
+// customCommandHelp returns a help segment string (e.g. "[g] lazygit • [F] fetch") for
+// all custom commands that apply to the given item type. Returns "" when none apply.
+func (m Model) customCommandHelp(t ItemType) string {
+	var parts []string
+	for _, c := range m.commands {
+		if commandAppliesTo(c, t) {
+			parts = append(parts, "["+c.Key+"] "+c.Label)
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, " • ")
 }
 
 // getProjectSubFolder returns the configured SubFolder for a project path.

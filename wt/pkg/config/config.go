@@ -4,24 +4,131 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
 
 // Project represents a worktree project configuration
 type Project struct {
-	Name     string   `yaml:"name"`
-	Path     string   `yaml:"path"`
-	Tags     []string `yaml:"tags,omitempty"`
-	Category string   `yaml:"category,omitempty"`
-	Color     string   `yaml:"color,omitempty"`     // Hex color (6 chars, e.g., "d37cef") for workspace/devcontainer theming
-	SubFolder string   `yaml:"subfolder,omitempty"` // Optional subdirectory within the checkout for workspace operations (e.g., monorepos)
+	Name        string            `yaml:"name"`
+	Path        string            `yaml:"path"`
+	Tags        []string          `yaml:"tags,omitempty"`
+	Category    string            `yaml:"category,omitempty"`
+	Color       string            `yaml:"color,omitempty"`        // Hex color (6 chars, e.g., "d37cef") for workspace/devcontainer theming
+	SubFolder   string            `yaml:"subfolder,omitempty"`    // Optional subdirectory within the checkout for workspace operations (e.g., monorepos)
+	CommandArgs map[string]string `yaml:"command_args,omitempty"` // Per-project overrides for command arg defaults; key -> value
+}
+
+// Command is a user-defined shell command bound to a key and offered on nodes of a
+// given scope. cwd is derived from the selected node (worktree path or project path + subfolder).
+type Command struct {
+	Key     string            `yaml:"key"`            // e.g. "g", "F", "ctrl+g" — must equal tea.KeyMsg.String()
+	Label   string            `yaml:"label"`          // shown in the help footer, e.g. "lazygit"
+	Scope   string            `yaml:"scope"`          // "worktree" | "project" | "any"
+	Command string            `yaml:"command"`        // shell line, run via `sh -c`
+	Args    map[string]string `yaml:"args,omitempty"` // arg name -> default value; injected as $WT_ARG_<name>
 }
 
 // Config represents the application configuration
 type Config struct {
 	Projects   []Project `yaml:"projects"`
 	Categories []string  `yaml:"categories,omitempty"`
+	Commands   []Command `yaml:"commands,omitempty"` // User-defined key bindings
+}
+
+// ReservedKeys is the set of keys that are reserved for built-in actions.
+// NOTE: If you add a new built-in key to handleKeyPress in tui/model.go, add it here too.
+var ReservedKeys = map[string]bool{
+	"q":      true,
+	"ctrl+c": true,
+	"esc":    true,
+	"/":      true,
+	"up":     true,
+	"down":   true,
+	"k":      true,
+	"j":      true,
+	"enter":  true,
+	"o":      true,
+	" ":      true, // space
+	"right":  true,
+	"left":   true,
+	"l":      true,
+	"h":      true,
+	"n":      true,
+	"a":      true,
+	"d":      true,
+	"c":      true,
+	"t":      true,
+	"v":      true,
+	"i":      true,
+	"e":      true,
+	"r":      true,
+}
+
+var validScopes = map[string]bool{
+	"worktree": true,
+	"project":  true,
+	"any":      true,
+}
+
+var argNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// ValidateCommands validates the commands list in the config.
+// Returns an error if any command is invalid.
+func (c *Config) ValidateCommands() error {
+	seen := make(map[string]bool) // key "(key,scope)"
+	for i, cmd := range c.Commands {
+		if cmd.Key == "" {
+			return fmt.Errorf("custom command[%d]: key must not be empty", i)
+		}
+		if cmd.Label == "" {
+			return fmt.Errorf("custom command[%d]: label must not be empty (key %q)", i, cmd.Key)
+		}
+		if cmd.Command == "" {
+			return fmt.Errorf("custom command[%d]: command must not be empty (key %q)", i, cmd.Key)
+		}
+		if ReservedKeys[cmd.Key] {
+			return fmt.Errorf("custom command: key %q is reserved by a built-in action", cmd.Key)
+		}
+		if !validScopes[cmd.Scope] {
+			return fmt.Errorf("custom command: key %q has invalid scope %q (must be \"worktree\", \"project\", or \"any\")", cmd.Key, cmd.Scope)
+		}
+		pairKey := cmd.Key + "\x00" + cmd.Scope
+		if seen[pairKey] {
+			return fmt.Errorf("custom command: duplicate (key %q, scope %q)", cmd.Key, cmd.Scope)
+		}
+		seen[pairKey] = true
+		for name := range cmd.Args {
+			if !argNameRe.MatchString(name) {
+				return fmt.Errorf("custom command: key %q has invalid arg name %q (must match [A-Za-z_][A-Za-z0-9_]*)", cmd.Key, name)
+			}
+		}
+	}
+	for _, p := range c.Projects {
+		for name := range p.CommandArgs {
+			if !argNameRe.MatchString(name) {
+				return fmt.Errorf("project %q has invalid command_args name %q (must match [A-Za-z_][A-Za-z0-9_]*)", p.Name, name)
+			}
+		}
+	}
+	return nil
+}
+
+// ResolveArgs resolves the effective arg map for a command dispatched on a given project.
+// Values in project.CommandArgs take precedence over cmd.Args defaults.
+// Returns an empty map (never nil) when cmd has no args and project has no overrides.
+func ResolveArgs(cmd Command, p *Project) map[string]string {
+	result := make(map[string]string)
+	for k, v := range cmd.Args {
+		result[k] = v
+	}
+	if p != nil {
+		for k, v := range p.CommandArgs {
+			result[k] = v
+		}
+	}
+	return result
 }
 
 // customConfigPath holds the custom config path if set via --config flag
@@ -116,6 +223,10 @@ func LoadConfig() (*Config, error) {
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	if err := config.ValidateCommands(); err != nil {
+		return nil, err
 	}
 
 	return &config, nil

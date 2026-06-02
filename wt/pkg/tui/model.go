@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -62,6 +63,7 @@ type Model struct {
 	loadedCount        int                            // Number of projects loaded so far
 	lazyLoadEnabled    bool                           // Enable lazy loading (only load expanded projects)
 	searchDebounceID   int                            // Incremented on each keystroke to invalidate old debounces
+	commands           []config.Command               // User-defined key bindings from config
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -83,8 +85,8 @@ type Item struct {
 	Worktree    *worktree.Worktree     // nil for category and project items
 }
 
-// NewModel creates a new TUI model with the given projects and categories.
-func NewModel(projects []config.Project, categories []string) Model {
+// NewModel creates a new TUI model with the given projects, categories, and custom commands.
+func NewModel(projects []config.Project, categories []string, commands []config.Command) Model {
 	ti := textinput.New()
 	ti.Placeholder = "branch-name"
 	ti.Focus()
@@ -147,6 +149,7 @@ func NewModel(projects []config.Project, categories []string) Model {
 		searchDebounceID:   0,
 		width:              80,  // Default width
 		height:             24,  // Default height
+		commands:           commands,
 	}
 	
 	// Initialize all projects as collapsed (default state)
@@ -606,6 +609,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.projects = cfg.Projects
 		m.categories = cfg.Categories
+		m.commands = cfg.Commands
 		m.buildItems()
 		m.loadWorktrees()
 		
@@ -631,6 +635,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.projects = cfg.Projects
 		m.categories = cfg.Categories
+		m.commands = cfg.Commands
 		m.buildItems()
 		
 		// Keep the current project selected
@@ -649,6 +654,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.projects = cfg.Projects
+		m.commands = cfg.Commands
 		m.buildItems()
 		
 		// Keep the current project selected
@@ -667,8 +673,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Devcontainer created successfully, clear any previous errors
 		m.err = nil
 		return m, nil
+	case customCommandFinishedMsg:
+		if msg.err != nil {
+			m.err = fmt.Errorf("command %q: %w", msg.label, msg.err)
+		} else {
+			m.err = nil
+		}
+		return m, m.reloadWorktrees(msg.projectPath)
 	}
-	
+
 	return m, nil
 }
 
@@ -928,8 +941,69 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
-	
+
+	// NOTE: Adding a new built-in key above requires adding it to config.ReservedKeys too.
+	// Custom command dispatch (built-in keys are reserved, so no overlap)
+	if m.selectedIndex >= 0 && m.selectedIndex < len(m.items) {
+		item := m.items[m.selectedIndex]
+		for _, c := range m.commands {
+			if c.Key == msg.String() && commandAppliesTo(c, item.Type) {
+				return m, m.runCustomCommand(c, item)
+			}
+		}
+	}
+
 	return m, nil
+}
+
+// runCustomCommand suspends the TUI, runs the command in the resolved working directory,
+// and returns to the TUI on exit.
+func (m Model) runCustomCommand(c config.Command, item Item) tea.Cmd {
+	// Resolve working directory
+	base := item.ProjectPath
+	if item.Type == ItemTypeWorktree && item.Worktree != nil {
+		base = item.Worktree.Path
+	}
+	cwd := workspace.GetTargetPath(base, m.getProjectSubFolder(item.ProjectPath))
+
+	// Resolve the project for arg lookup
+	var project *config.Project
+	for i := range m.projects {
+		if m.projects[i].Path == item.ProjectPath {
+			project = &m.projects[i]
+			break
+		}
+	}
+
+	// Build environment: inherit parent env, then append WT_* vars
+	env := os.Environ()
+	env = append(env,
+		"WT_PROJECT_NAME="+item.ProjectName,
+		"WT_PROJECT_PATH="+item.ProjectPath,
+		"WT_CWD="+cwd,
+		"WT_SCOPE="+c.Scope,
+	)
+	if item.Type == ItemTypeWorktree && item.Worktree != nil {
+		env = append(env,
+			"WT_WORKTREE_PATH="+item.Worktree.Path,
+			"WT_BRANCH="+item.Worktree.Branch,
+		)
+	}
+	for name, val := range config.ResolveArgs(c, project) {
+		env = append(env, "WT_ARG_"+name+"="+val)
+	}
+
+	cmd := exec.Command("sh", "-c", c.Command)
+	cmd.Dir = cwd
+	cmd.Env = env
+
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return customCommandFinishedMsg{
+			err:         err,
+			label:       c.Label,
+			projectPath: item.ProjectPath,
+		}
+	})
 }
 
 // matchesFilter checks if an item matches the current filter term.
@@ -1407,6 +1481,13 @@ type workspaceCreatedMsg struct {
 // devcontainerCreatedMsg is sent when a .devcontainer folder is successfully created.
 type devcontainerCreatedMsg struct {
 	targetPath string
+}
+
+// customCommandFinishedMsg is sent when a user-defined command exits.
+type customCommandFinishedMsg struct {
+	err         error
+	label       string
+	projectPath string // used to trigger an async worktree reload after the command
 }
 
 // openInVSCode opens the selected item (project or worktree) in VS Code.

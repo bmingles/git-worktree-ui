@@ -189,6 +189,67 @@ This is useful when:
 
 See [example-config.yaml](example-config.yaml) for a complete example.
 
+### Custom Commands
+
+You can bind arbitrary shell commands to keys via the `commands:` list in your config. Each custom command is shown in the contextual help footer when an applicable node is selected, and the TUI suspends to let the command run interactively (e.g. `lazygit`, `npm install`) before returning.
+
+```yaml
+commands:
+  - key: g
+    label: lazygit
+    scope: worktree          # "worktree" | "project" | "any"
+    command: lazygit
+
+  - key: F
+    label: fetch
+    scope: project
+    command: git fetch --all --prune
+
+  - key: P
+    label: push branch
+    scope: worktree
+    command: git push -u origin "$WT_BRANCH"
+```
+
+**Scope** controls which node types show and activate the command:
+- `worktree` — offered only when a worktree row is selected; `cwd` is the worktree checkout path
+- `project` — offered only when a project row is selected; `cwd` is the project path
+- `any` — offered on both; `cwd` resolves per node type
+
+**Environment variables** available to every command:
+
+| Variable | Value |
+|---|---|
+| `WT_PROJECT_NAME` | project name |
+| `WT_PROJECT_PATH` | project root path |
+| `WT_CWD` | resolved working directory |
+| `WT_SCOPE` | the command's scope string |
+| `WT_WORKTREE_PATH` | worktree path (worktree nodes only) |
+| `WT_BRANCH` | branch name (worktree nodes only) |
+| `WT_ARG_<name>` | per-arg values (see below) |
+
+**Command arguments** let you declare named parameters with defaults that individual projects can override:
+
+```yaml
+commands:
+  - key: s
+    label: scaffold
+    scope: project
+    command: project-cli --template "$WT_ARG_template"
+    args:
+      template: default-template   # fallback when a project doesn't override it
+
+projects:
+  - name: api-service
+    path: /Users/username/code/my-api
+    command_args:
+      template: api-template       # overrides the 'template' default for this project
+```
+
+**Reserved keys** — the following built-in keys cannot be reused: `q`, `ctrl+c`, `esc`, `/`, `up`, `down`, `k`, `j`, `enter`, `o`, `space`, `right`, `left`, `l`, `h`, `n`, `a`, `d`, `c`, `t`, `v`, `i`, `e`, `r`. A config that reuses any of them is rejected at startup with a clear error.
+
+After a custom command exits, the affected project's worktrees reload automatically so `*` / `↑N` / `↓N` annotations reflect any git state changes.
+
 ## Git Status Indicators
 
 In the TUI, each worktree displays status indicators:

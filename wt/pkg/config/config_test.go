@@ -412,6 +412,140 @@ func TestGetAllTags(t *testing.T) {
 	}
 }
 
+func TestValidateCommands(t *testing.T) {
+	valid := Config{
+		Commands: []Command{
+			{Key: "g", Label: "lazygit", Scope: "worktree", Command: "lazygit"},
+			{Key: "F", Label: "fetch", Scope: "project", Command: "git fetch --all"},
+			{Key: "g", Label: "any-g", Scope: "any", Command: "echo hi"},
+		},
+	}
+	if err := valid.ValidateCommands(); err != nil {
+		t.Errorf("expected valid config to pass, got: %v", err)
+	}
+
+	// reserved key
+	c := Config{Commands: []Command{{Key: "d", Label: "lbl", Scope: "worktree", Command: "ls"}}}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for reserved key 'd'")
+	}
+
+	// empty key
+	c = Config{Commands: []Command{{Key: "", Label: "lbl", Scope: "worktree", Command: "ls"}}}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for empty key")
+	}
+
+	// empty label
+	c = Config{Commands: []Command{{Key: "g", Label: "", Scope: "worktree", Command: "ls"}}}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for empty label")
+	}
+
+	// empty command
+	c = Config{Commands: []Command{{Key: "g", Label: "lbl", Scope: "worktree", Command: ""}}}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for empty command")
+	}
+
+	// invalid scope
+	c = Config{Commands: []Command{{Key: "g", Label: "lbl", Scope: "global", Command: "ls"}}}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for invalid scope")
+	}
+
+	// duplicate (key, scope)
+	c = Config{Commands: []Command{
+		{Key: "g", Label: "lbl1", Scope: "worktree", Command: "ls"},
+		{Key: "g", Label: "lbl2", Scope: "worktree", Command: "echo"},
+	}}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for duplicate (key, scope)")
+	}
+
+	// same key different scope is OK
+	c = Config{Commands: []Command{
+		{Key: "g", Label: "lbl1", Scope: "worktree", Command: "ls"},
+		{Key: "g", Label: "lbl2", Scope: "project", Command: "echo"},
+	}}
+	if err := c.ValidateCommands(); err != nil {
+		t.Errorf("same key different scope should be valid, got: %v", err)
+	}
+
+	// illegal arg name
+	c = Config{Commands: []Command{{Key: "g", Label: "lbl", Scope: "worktree", Command: "ls", Args: map[string]string{"bad-name": "val"}}}}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for illegal arg name in command.args")
+	}
+
+	// illegal project command_args name
+	c = Config{
+		Projects: []Project{{Name: "p", Path: "/p", CommandArgs: map[string]string{"bad-name": "val"}}},
+	}
+	if err := c.ValidateCommands(); err == nil {
+		t.Error("expected error for illegal arg name in project.command_args")
+	}
+
+	// no commands -> nil slice loads fine
+	c = Config{}
+	if err := c.ValidateCommands(); err != nil {
+		t.Errorf("empty commands should be valid, got: %v", err)
+	}
+}
+
+func TestResolveArgs(t *testing.T) {
+	cmd := Command{
+		Key:     "s",
+		Label:   "scaffold",
+		Scope:   "project",
+		Command: "echo $WT_ARG_template",
+		Args:    map[string]string{"template": "default-template", "env": "dev"},
+	}
+
+	// No project -> use defaults
+	result := ResolveArgs(cmd, nil)
+	if result["template"] != "default-template" {
+		t.Errorf("expected 'default-template', got %q", result["template"])
+	}
+	if result["env"] != "dev" {
+		t.Errorf("expected 'dev', got %q", result["env"])
+	}
+
+	// Project overrides one key
+	p := &Project{CommandArgs: map[string]string{"template": "api-template"}}
+	result = ResolveArgs(cmd, p)
+	if result["template"] != "api-template" {
+		t.Errorf("project override should win: expected 'api-template', got %q", result["template"])
+	}
+	if result["env"] != "dev" {
+		t.Errorf("non-overridden default should remain: expected 'dev', got %q", result["env"])
+	}
+
+	// Project-only key (not in command.Args) is included
+	p2 := &Project{CommandArgs: map[string]string{"extra": "val"}}
+	result = ResolveArgs(cmd, p2)
+	if result["extra"] != "val" {
+		t.Errorf("project-only key should be included, got %q", result["extra"])
+	}
+
+	// Empty default yields empty string
+	cmdEmpty := Command{Args: map[string]string{"x": ""}}
+	result = ResolveArgs(cmdEmpty, nil)
+	if v, ok := result["x"]; !ok || v != "" {
+		t.Errorf("empty default should yield empty string, got %q (ok=%v)", v, ok)
+	}
+
+	// No args, no project command_args -> empty map (not nil)
+	cmdNoArgs := Command{Key: "z", Label: "z", Scope: "any", Command: "echo"}
+	result = ResolveArgs(cmdNoArgs, nil)
+	if result == nil {
+		t.Error("ResolveArgs should never return nil")
+	}
+	if len(result) != 0 {
+		t.Errorf("expected empty map, got %v", result)
+	}
+}
+
 func TestFilterProjectsByTag(t *testing.T) {
 	config := &Config{
 		Projects: []Project{
