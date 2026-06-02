@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -1274,17 +1275,27 @@ func (m Model) loadProjectWorktreesCmd(projectPath string) tea.Cmd {
 				err:         err,
 			}
 		}
-		
-		// Load status for each worktree
+
+		// Load status for each worktree in parallel, bounded to avoid
+		// spawning unbounded git processes for large projects.
+		const maxConcurrentStatus = 16
+		sem := make(chan struct{}, maxConcurrentStatus)
+		var wg sync.WaitGroup
 		for i := range wts {
-			status, err := worktree.GetStatus(wts[i].Path)
-			if err != nil {
-				// Continue with empty status on error
-				continue
-			}
-			wts[i].Status = status
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				status, err := worktree.GetStatus(wts[i].Path)
+				if err != nil {
+					return
+				}
+				wts[i].Status = status
+			}(i)
 		}
-		
+		wg.Wait()
+
 		return worktreeLoadCompleteMsg{
 			projectPath: projectPath,
 			worktrees:   wts,
