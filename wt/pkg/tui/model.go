@@ -64,6 +64,7 @@ type Model struct {
 	lazyLoadEnabled    bool                           // Enable lazy loading (only load expanded projects)
 	searchDebounceID   int                            // Incremented on each keystroke to invalidate old debounces
 	commands           []config.Command               // User-defined key bindings from config
+	scrollOffset       int                            // First visible line of the project tree (for scrolling)
 }
 
 // ItemType represents the type of item in the navigation list.
@@ -522,9 +523,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.clampScroll()
+		return m, nil
+	case tea.MouseMsg:
+		switch msg.Button {
+		case tea.MouseButtonWheelUp:
+			m.scrollOffset -= 3
+			m.clampScroll()
+		case tea.MouseButtonWheelDown:
+			m.scrollOffset += 3
+			m.clampScroll()
+		}
 		return m, nil
 	case tea.KeyMsg:
-		return m.handleKeyPress(msg)
+		updated, cmd := m.handleKeyPress(msg)
+		// Keep the selected item within the scrollable viewport after any key action
+		// (navigation, expand/collapse, refresh, etc.).
+		if next, ok := updated.(Model); ok {
+			next.ensureSelectionVisible()
+			return next, cmd
+		}
+		return updated, cmd
 	case worktreesLoadedMsg:
 		m.worktrees[msg.projectPath] = msg.worktrees
 		m.buildItems()
@@ -736,7 +755,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-		
+		m.ensureSelectionVisible()
+
 	case "down", "j":
 		if m.selectedIndex < len(m.items)-1 {
 			m.selectedIndex++
@@ -1284,6 +1304,66 @@ skipUncategorized:
 		if m.selectedIndex >= len(m.items) {
 			m.selectedIndex = len(m.items) - 1
 		}
+	}
+}
+
+// viewportMetrics computes the scrollable body height (in lines), the total number of
+// tree lines, and the line index of the currently selected item. View and the scroll
+// helpers share this so the visible window and clamping stay in sync.
+func (m Model) viewportMetrics() (bodyHeight, totalLines, selectedLine int) {
+	header := m.renderHeader()
+	footer := m.renderFooter()
+	lines, sel := m.treeLines()
+
+	innerWidth := m.innerWidth()
+	contentHeight := m.height - 4 // box border (2) + vertical padding (2)
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+
+	bh := contentHeight - measuredHeight(header, innerWidth) - measuredHeight(footer, innerWidth)
+	if len(lines) > bh {
+		bh-- // reserve a line for the scroll indicator
+	}
+	if bh < 1 {
+		bh = 1
+	}
+
+	return bh, len(lines), sel
+}
+
+// clampScroll keeps scrollOffset within the valid range for the current viewport.
+func (m *Model) clampScroll() {
+	bh, total, _ := m.viewportMetrics()
+	maxOffset := total - bh
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if m.scrollOffset > maxOffset {
+		m.scrollOffset = maxOffset
+	}
+	if m.scrollOffset < 0 {
+		m.scrollOffset = 0
+	}
+}
+
+// ensureSelectionVisible scrolls the tree so the selected item is within the viewport.
+func (m *Model) ensureSelectionVisible() {
+	bh, total, sel := m.viewportMetrics()
+	if sel < m.scrollOffset {
+		m.scrollOffset = sel
+	} else if sel >= m.scrollOffset+bh {
+		m.scrollOffset = sel - bh + 1
+	}
+	maxOffset := total - bh
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if m.scrollOffset > maxOffset {
+		m.scrollOffset = maxOffset
+	}
+	if m.scrollOffset < 0 {
+		m.scrollOffset = 0
 	}
 }
 

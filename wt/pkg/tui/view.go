@@ -94,14 +94,8 @@ func (m Model) View() string {
 	}
 
 	// Calculate content width - use min of (terminal width - margins) or max width
-	contentWidth := m.width - 8 // Leave margin for terminal edges
-	if contentWidth > 120 {
-		contentWidth = 120
-	}
-	if contentWidth < 40 {
-		contentWidth = 40
-	}
-	
+	contentWidth := m.contentWidth()
+
 	var b strings.Builder
 
 	// Title
@@ -256,66 +250,188 @@ func (m Model) View() string {
 		return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 	}
 
-	// Error display
-	if m.err != nil {
-		b.WriteString(errorStyle.Render(fmt.Sprintf("Error: %v", m.err)))
-		b.WriteString("\n\n")
+	// Rebuild from dedicated header/body/footer sections so the footer can stick to
+	// the bottom of the window and the tree body can scroll independently.
+	innerWidth := contentWidth - 4 // box horizontal padding (2 each side)
+	if innerWidth < 1 {
+		innerWidth = 1
 	}
 
-	// Loading indicator
-	if m.isLoading {
-		loadingMsg := fmt.Sprintf("Loading worktrees... (%d/%d projects)", m.loadedCount, len(m.projects))
-		b.WriteString(helpStyle.Render(loadingMsg))
-		b.WriteString("\n\n")
+	header := m.renderHeader()
+	footer := m.renderFooter()
+	lines, _ := m.treeLines()
+	// Truncate each tree line to a single visual line so the height math is exact.
+	for i := range lines {
+		lines[i] = truncateLine(lines[i], innerWidth)
 	}
 
-	// Render items
-	b.WriteString(m.renderItems())
-
-	// Search box
-	if m.searchMode {
-		b.WriteString("\n")
-		b.WriteString(helpStyle.Render("Search: "))
-		b.WriteString(m.searchInput.View())
-		b.WriteString("\n")
-		b.WriteString(helpStyle.Render("Press Enter to confirm • Esc to cancel"))
-	} else if m.filterActive {
-		b.WriteString("\n")
-		b.WriteString(helpStyle.Render(fmt.Sprintf("Filter: %s (Press Esc to clear)", m.filterTerm)))
+	// Available content height inside the box (border 2 + vertical padding 2).
+	contentHeight := m.height - 4
+	if contentHeight < 1 {
+		contentHeight = 1
 	}
 
-	// Help text
-	b.WriteString("\n")
-	b.WriteString(m.renderHelp())
+	bodyHeight := contentHeight - measuredHeight(header, innerWidth) - measuredHeight(footer, innerWidth)
+	overflow := len(lines) > bodyHeight
+	if overflow {
+		bodyHeight-- // reserve a line for the scroll indicator
+	}
+	if bodyHeight < 1 {
+		bodyHeight = 1
+	}
 
-	content := boxStyle.Width(contentWidth).Render(b.String())
+	// Clamp the scroll offset for the current viewport.
+	offset := m.scrollOffset
+	maxOffset := len(lines) - bodyHeight
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if offset > maxOffset {
+		offset = maxOffset
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Take the visible window of tree lines and pad it so the footer stays at the bottom.
+	end := offset + bodyHeight
+	if end > len(lines) {
+		end = len(lines)
+	}
+	visible := make([]string, 0, bodyHeight)
+	visible = append(visible, lines[offset:end]...)
+	for len(visible) < bodyHeight {
+		visible = append(visible, "")
+	}
+	body := strings.Join(visible, "\n")
+
+	// Assemble header + body (+ scroll indicator) + footer.
+	var out strings.Builder
+	out.WriteString(header)
+	out.WriteString("\n")
+	out.WriteString(body)
+	if overflow {
+		out.WriteString("\n")
+		out.WriteString(m.renderScrollIndicator(offset, len(lines)-end))
+	}
+	out.WriteString("\n")
+	out.WriteString(footer)
+
+	content := boxStyle.Width(contentWidth).Render(out.String())
 	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
 }
 
-// renderItems renders the list of categories, projects and worktrees.
-func (m Model) renderItems() string {
+// contentWidth returns the width of the box content area, clamped to a sane range.
+func (m Model) contentWidth() int {
+	cw := m.width - 8 // Leave margin for terminal edges
+	if cw > 120 {
+		cw = 120
+	}
+	if cw < 40 {
+		cw = 40
+	}
+	return cw
+}
+
+// innerWidth returns the usable text width inside the box (content width minus padding).
+func (m Model) innerWidth() int {
+	iw := m.contentWidth() - 4
+	if iw < 1 {
+		iw = 1
+	}
+	return iw
+}
+
+// truncateLine clamps a (possibly styled) line to a single visual line of width w.
+func truncateLine(s string, w int) string {
+	return lipgloss.NewStyle().MaxWidth(w).Render(s)
+}
+
+// measuredHeight reports how many terminal rows s occupies once wrapped to width w,
+// matching how the box will render it.
+func measuredHeight(s string, w int) int {
+	return lipgloss.Height(lipgloss.NewStyle().Width(w).Render(s))
+}
+
+// renderHeader renders the fixed top section: title, error, and loading indicator.
+func (m Model) renderHeader() string {
 	var b strings.Builder
+	b.WriteString(titleStyle.Render("Git Worktree Manager"))
+
+	if m.err != nil {
+		b.WriteString("\n")
+		b.WriteString(errorStyle.Render(fmt.Sprintf("Error: %v", m.err)))
+	}
+
+	if m.isLoading {
+		loadingMsg := fmt.Sprintf("Loading worktrees... (%d/%d projects)", m.loadedCount, len(m.projects))
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render(loadingMsg))
+	}
+
+	return b.String()
+}
+
+// renderFooter renders the sticky bottom section: search/filter status and help text.
+func (m Model) renderFooter() string {
+	var parts []string
+
+	if m.searchMode {
+		parts = append(parts, helpStyle.Render("Search: ")+m.searchInput.View()+"\n"+
+			helpStyle.Render("Press Enter to confirm • Esc to cancel"))
+	} else if m.filterActive {
+		parts = append(parts, helpStyle.Render(fmt.Sprintf("Filter: %s (Press Esc to clear)", m.filterTerm)))
+	}
+
+	parts = append(parts, m.renderHelp())
+
+	return strings.Join(parts, "\n")
+}
+
+// renderScrollIndicator renders a single line showing how many tree lines are hidden
+// above and below the current viewport.
+func (m Model) renderScrollIndicator(above, below int) string {
+	var parts []string
+	if above > 0 {
+		parts = append(parts, fmt.Sprintf("↑ %d more", above))
+	}
+	if below > 0 {
+		parts = append(parts, fmt.Sprintf("↓ %d more", below))
+	}
+	return statusStyle.PaddingLeft(2).Render(strings.Join(parts, "   "))
+}
+
+// treeLines renders the category/project/worktree tree into one string per visual line
+// and reports the line index of the currently selected item (for scroll positioning).
+func (m Model) treeLines() ([]string, int) {
+	var lines []string
+	selectedLine := 0
 
 	for i, item := range m.items {
 		isSelected := i == m.selectedIndex
 
-		// Add extra spacing before categories (except the first one)
+		// Add extra spacing before categories (except the first one).
 		if item.Type == ItemTypeCategory && i > 0 {
-			b.WriteString("\n")
+			lines = append(lines, "")
 		}
 
+		var line string
 		switch item.Type {
 		case ItemTypeCategory:
-			b.WriteString(m.renderCategory(item, isSelected))
+			line = m.renderCategory(item, isSelected)
 		case ItemTypeProject:
-			b.WriteString(m.renderProject(item, isSelected))
+			line = m.renderProject(item, isSelected)
 		case ItemTypeWorktree:
-			b.WriteString(m.renderWorktree(item, isSelected))
+			line = m.renderWorktree(item, isSelected)
 		}
-		b.WriteString("\n")
+
+		if isSelected {
+			selectedLine = len(lines)
+		}
+		lines = append(lines, line)
 	}
 
-	return b.String()
+	return lines, selectedLine
 }
 
 // renderCategory renders a category header.
